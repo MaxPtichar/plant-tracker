@@ -3,13 +3,9 @@ use core::fmt;
 use chrono::{ NaiveDate};
 use serde::{Deserialize, Serialize};
 
-use crate::constants::{
-    CHLOROPHYTUM_THRESHOLD, FICUS_BLACK_PRINCE_THRESHOLD, FICUS_KINKY_THRESHOLD,
-    FICUS_MICROCARPA_THRESHOLD, R_CHLOROPHYTUM, R_FICUS_BLACK_PRINCE, R_FICUS_KINKY,
-    R_FICUS_MICROCARPA, R_SANSEVIERIA, SAFE_DAYS_CHLOROPHYTUM, SAFE_DAYS_FICUS_BLACK_PRINCE,
-    SAFE_DAYS_FICUS_KINKY, SAFE_DAYS_FICUS_MICROCARPA, SAFE_DAYS_SANSEVIERIA,
-    SANSEVIERIA_THRESHOLD, CHLOROPHYTUM_DRY, SANSEVIERIA_DRY, FICUS_BLACK_PRINCE_DRY, FICUS_KINKY_DRY, FICUS_MICROCARPA_DRY
-};
+use crate::{ constants::{
+    CHLOROPHYTUM_DRY, CHLOROPHYTUM_THRESHOLD, FICUS_BLACK_PRINCE_DRY, FICUS_BLACK_PRINCE_THRESHOLD, FICUS_KINKY_DRY, FICUS_KINKY_THRESHOLD, FICUS_MICROCARPA_DRY, FICUS_MICROCARPA_THRESHOLD, R_CHLOROPHYTUM, R_FICUS_BLACK_PRINCE, R_FICUS_KINKY, R_FICUS_MICROCARPA, R_SANSEVIERIA, SAFE_DAYS_CHLOROPHYTUM, SAFE_DAYS_FICUS_BLACK_PRINCE, SAFE_DAYS_FICUS_KINKY, SAFE_DAYS_FICUS_MICROCARPA, SAFE_DAYS_SANSEVIERIA, SANSEVIERIA_DRY, SANSEVIERIA_THRESHOLD
+}};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub enum PlantType {
@@ -93,6 +89,7 @@ pub struct Plant {
     pub name: String,
     pub plant_type: PlantType,
     pub measurements: Vec<Measurement>,
+    pub avg_r: Option<f32>, 
 }
 
 impl Plant {
@@ -101,20 +98,19 @@ impl Plant {
         name: String,
         plant_type: PlantType,
         measurements: Vec<Measurement>,
+        avg_r: Option<f32>, 
     ) -> Self {
         Self {
             id,
             name,
             plant_type,
             measurements,
+            avg_r: None,
         }
     }
 
-    pub fn print_all_test(&self) {
-        println!(
-            "{}. {}, {:?}, {:?}",
-            self.id, self.name, self.plant_type, self.measurements
-        )
+    pub fn update_avg_r (&mut self, avg: Option<f32>) {
+        self.avg_r = avg;
     }
 
     pub fn print_plants(plants: &Vec<Plant>) {

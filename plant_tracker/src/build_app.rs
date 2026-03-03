@@ -2,7 +2,7 @@ use crate::input::get_plant;
 use crate::input::{add_new_measurement, read_line, find_plant};
 use crate::models::{Plant, watering_status};
 use crate::storage::{load, save};
-use crate::analytics::{days_until_watering};
+use crate::analytics::{days_until_watering, get_avg_r};
 use crate::constants::{COUNT_PLANT_TYPE};
 
 fn get_json_load() -> Vec<Plant> {
@@ -14,7 +14,7 @@ fn add_new_plant() {
     let (id, name, plant_type, measurement) = get_plant();
 
     println!("New plant {} created!", name);
-    let new_plant = Plant::new(id, name, plant_type, measurement);
+    let new_plant = Plant::new(id, name, plant_type, measurement, None);
 
     plants.push(new_plant);
 
@@ -52,6 +52,16 @@ pub fn menu(plants: &mut Vec<Plant>) {
         }
     }
 }
+
+
+pub fn get_avr_r_for_each_plant(plants: &mut [Plant]) {
+    for plant in plants.iter_mut() {
+        let avg = get_avg_r(plant);
+        plant.update_avg_r(avg);
+    }
+}
+
+    
 
 
 
