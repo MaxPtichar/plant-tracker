@@ -1,9 +1,9 @@
+use crate::analytics::{days_until_watering, get_avg_r};
+use crate::constants::COUNT_PLANT_TYPE;
 use crate::input::get_plant;
-use crate::input::{add_new_measurement, read_line, find_plant};
+use crate::input::{add_new_measurement, find_plant, read_line};
 use crate::models::{Plant, watering_status};
 use crate::storage::{load, save};
-use crate::analytics::{days_until_watering, get_avg_r};
-use crate::constants::{COUNT_PLANT_TYPE};
 
 fn get_json_load() -> Vec<Plant> {
     load()
@@ -37,7 +37,7 @@ pub fn menu(plants: &mut Vec<Plant>) {
 
                 Ok(2) => add_new_measurement(plants),
 
-                Ok(3) => get_predicate(plants),
+                Ok(3) => println!("{:?}", get_predicate(plants)),
 
                 Ok(4) => break,
                 Ok(_) => println!("Enter a number from 1 to 4"),
@@ -53,7 +53,6 @@ pub fn menu(plants: &mut Vec<Plant>) {
     }
 }
 
-
 pub fn get_avr_r_for_each_plant(plants: &mut [Plant]) {
     for plant in plants.iter_mut() {
         let avg = get_avg_r(plant);
@@ -61,32 +60,18 @@ pub fn get_avr_r_for_each_plant(plants: &mut [Plant]) {
     }
 }
 
-    
-
-
-
-fn get_predicate (plants: &Vec<Plant>) {
+pub fn get_predicate(plants: &Vec<Plant>) -> String {
+    let mut lines: Vec<String> = Vec::new();
 
     for plant in plants {
-
-         let predicate = match days_until_watering(plant) {
-        Some(value) => value, 
-        None => {println!("{}: do not have data to predicate", plant.name);
-        continue;}
-
-
-
-
-     
-
-   
-        
-    };
-    println!("{}: {}",plant.name,  watering_status(predicate));
-
+        let predicate = match days_until_watering(plant) {
+            Some(value) => format!("🌱 {}: {}", plant.name, watering_status(value)),
+            None => {
+                format!("🌱 {}: нет данных", plant.name)
+            }
+        };
+        lines.push(predicate);
     }
-     
 
-    
-    
+    lines.join("\n")
 }
