@@ -1,4 +1,4 @@
-use chrono::{ Local, NaiveDate};
+use chrono::{Local, NaiveDate};
 use std::io;
 
 use crate::constants::COUNT_PLANT_TYPE;

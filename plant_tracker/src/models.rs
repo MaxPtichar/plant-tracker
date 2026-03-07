@@ -68,7 +68,7 @@ impl PlantBehavoir for PlantType {
         }
     }
 }
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 
 pub enum MeasurementType {
     Regular,
