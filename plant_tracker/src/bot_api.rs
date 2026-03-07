@@ -5,7 +5,8 @@ use dotenvy::dotenv;
 use teloxide::dispatching::Dispatcher;
 use teloxide::dispatching::dialogue::{self, GetChatId, InMemStorage};
 use teloxide::types::{InlineKeyboardButton, InlineKeyboardMarkup};
-use teloxide::{macros::BotCommands, prelude::*};
+use teloxide::utils::command::BotCommands;
+use teloxide::{prelude::*};
 
 
 use crate::add_new_measurement::add_new_measurement;
@@ -17,9 +18,16 @@ use crate::{analytics::*, build_app};
 #[derive(BotCommands, Clone)]
 #[command(rename_rule = "lowercase")]
 enum Command {
+    #[command(description = "Главное меню")]
     Start,
+    #[command(description = "Когда поливать")]
+
     Status,
+    #[command(description = "Добавить измерение")]
+
     Addmeasurement,
+    #[command(description = "Отменить действие")]
+
     Cancel,
 }
 
@@ -48,6 +56,9 @@ pub async fn plant_bot() {
     dotenv().ok();
 
     let bot = Bot::from_env();
+
+    bot.set_my_commands(Command::bot_commands()).await.unwrap();
+
     let mut plants = load();
             build_app::get_avr_r_for_each_plant(&mut plants);
             save(&plants);
