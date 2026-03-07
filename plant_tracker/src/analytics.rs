@@ -16,7 +16,13 @@ pub fn days_until_watering(plant: &Plant) -> Option<f32> {
         return None;
     }
 
-    let days_left = (m_current - target_weight) / r;
+    let today = chrono::Local::now().date_naive();
+
+
+    let last_measurements = plant.measurements.last()?;
+    let days_since = (today - last_measurements.date).num_days() as f32;
+
+    let days_left = (m_current - target_weight) / r - days_since;
 
     Some(days_left)
 }
