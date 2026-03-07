@@ -11,7 +11,7 @@ use teloxide::{macros::BotCommands, prelude::*};
 use crate::add_new_measurement::add_new_measurement;
 use crate::build_app::get_predicate;
 use crate::models::{Measurement, MeasurementType, Plant};
-use crate::storage::load;
+use crate::storage::{load, save};
 use crate::{analytics::*, build_app};
 
 #[derive(BotCommands, Clone)]
@@ -48,6 +48,9 @@ pub async fn plant_bot() {
     dotenv().ok();
 
     let bot = Bot::from_env();
+    let mut plants = load();
+            build_app::get_avr_r_for_each_plant(&mut plants);
+            save(&plants);
 
     let dependencies = dptree::deps![InMemStorage::<MeasurementDialogue>::new()];
 
@@ -106,8 +109,8 @@ async fn handle_command(
         }
 
         Command::Status => {
-            let mut plants = load();
-            build_app::get_avr_r_for_each_plant(&mut plants);
+            let plants = load();
+           
             bot.send_message(msg.chat.id, get_predicate(&plants))
                 .await?;
         }
@@ -246,7 +249,7 @@ fn plant_keyboard(plants: &[Plant]) -> InlineKeyboardMarkup {
 fn measurement_type_keyboard() -> InlineKeyboardMarkup {
     InlineKeyboardMarkup::new(vec![
         vec![InlineKeyboardButton::callback(
-            "Регулярный полив",
+            "Обычное взвешивание",
             "Regular",
         )],
         vec![InlineKeyboardButton::callback(
