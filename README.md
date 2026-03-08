@@ -37,6 +37,7 @@ Plants are weighed before watering, after watering, and in between — by tracki
 - [ ] Weight dynamics charts
 - [ ] Add support for all spiecies
 - [ ] Add per-user database (multi-user support)
+- [ ] Add localization (EN / RU)
 
 ## Status
 
