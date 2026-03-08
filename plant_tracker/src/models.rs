@@ -122,7 +122,7 @@ impl Plant {
 pub enum WateringStatus {
     Overdue,   // просрочен — меньше 0 дней
     Urgent,    // срочно — меньше 1 дня
-    Soon,      // скоро — 1-2 дня
+    Soon(f32), // скоро — 1-2 дня
     Wait(f32), // подождать — больше 2 дней, храним сколько именно
 }
 
@@ -131,7 +131,11 @@ impl fmt::Display for WateringStatus {
         match self {
             WateringStatus::Overdue => write!(f, "🚨 Полив просрочен!"),
             WateringStatus::Urgent => write!(f, "⚠️  Полить сегодня!"),
-            WateringStatus::Soon => write!(f, "🕐 Полить в ближайшие дни"),
+            WateringStatus::Soon(days) => write!(
+                f,
+                "🕐 Полить в ближайшие дни - {} дня до полива",
+                days.round()
+            ),
             WateringStatus::Wait(days) => write!(f, "✅ Ещё {} дней", days.round()),
         }
     }
@@ -141,7 +145,7 @@ pub fn watering_status(days: f32) -> WateringStatus {
     match days {
         d if d < 0.0 => WateringStatus::Overdue,
         d if d < 1.0 => WateringStatus::Urgent,
-        d if d < 3.0 => WateringStatus::Soon,
+        d if d < 3.0 => WateringStatus::Soon(d),
         d => WateringStatus::Wait(d),
     }
 }
