@@ -1,6 +1,6 @@
 # 🌱 Plant Tracker
 
-CLI tool for tracking indoor plant watering cycles using weight-based analytics and predictions.
+Indoor plant watering tracker with weight-based analytics. Telegram bot with watering predictions and measurement logging.
 
 ## Idea
 
