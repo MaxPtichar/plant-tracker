@@ -16,6 +16,8 @@ target
 
 
 plant_tracker/data/plants.json
+plant_tracker/data/backups
+
 # RustRover
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
 #  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
