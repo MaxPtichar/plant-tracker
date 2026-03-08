@@ -18,7 +18,6 @@ pub fn days_until_watering(plant: &Plant) -> Option<f32> {
 
     let today = chrono::Local::now().date_naive();
 
-
     let last_measurements = plant.measurements.last()?;
     let days_since = (today - last_measurements.date).num_days() as f32;
 
