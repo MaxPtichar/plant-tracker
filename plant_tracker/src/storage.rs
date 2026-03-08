@@ -1,7 +1,6 @@
 use std::fs;
 
 use crate::models::Plant;
-use chrono::Local;
 
 pub fn save(plants: &[Plant]) {
     fs::create_dir_all("data").unwrap();

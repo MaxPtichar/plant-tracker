@@ -15,7 +15,7 @@ use teloxide::prelude::*;
 use crate::bot::callbacks::cancel_callback;
 use crate::bot::commands::{handle_command, handle_menu_buttons};
 use crate::bot::dialogue::{receive_plant, receive_type, receive_weight, recieve_date};
-use crate::build_app;
+use crate::operations;
 use crate::storage::{load, save};
 
 pub type MyDialogue = Dialogue<MeasurementDialogue, InMemStorage<MeasurementDialogue>>;
@@ -31,7 +31,7 @@ pub async fn plant_bot() {
         .unwrap();
 
     let mut plants = load();
-    build_app::get_avr_r_for_each_plant(&mut plants);
+    operations::get_avr_r_for_each_plant(&mut plants);
     save(&plants);
 
     let dependencies = dptree::deps![InMemStorage::<MeasurementDialogue>::new()];

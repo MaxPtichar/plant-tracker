@@ -1,15 +1,11 @@
 use teloxide::prelude::*;
 use teloxide::utils::command::BotCommands;
 
-use crate::build_app::get_predicate;
-
-use crate::bot::callbacks::{
-     parse_main_menu_buttons};
-use crate::bot::keyboards::{
-     main_menu_buttons, plant_keyboard,
-};
+use crate::bot::callbacks::parse_main_menu_buttons;
+use crate::bot::keyboards::{main_menu_buttons, plant_keyboard};
 use crate::bot::{HandlerResult, MeasurementDialogue, MyDialogue};
-use crate::build_app;
+
+use crate::operations::{get_avr_r_for_each_plant, get_predicate};
 use crate::storage::load;
 
 #[derive(BotCommands, Clone)]
@@ -86,7 +82,7 @@ pub async fn handle_menu_buttons(
         }
         Command::Status => {
             let mut plants = load();
-            build_app::get_avr_r_for_each_plant(&mut plants);
+            get_avr_r_for_each_plant(&mut plants);
             bot.send_message(chat_id, get_predicate(&plants)).await?;
         }
 
