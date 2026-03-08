@@ -9,7 +9,7 @@ pub const FICUS_KINKY_THRESHOLD: f32 = 0.30; // Фикус Кинки
 pub const FICUS_BLACK_PRINCE_THRESHOLD: f32 = 0.25; // Фикус Чёрный принц
 
 pub const CHLOROPHYTUM_DRY: f32 = 373.0;
-pub const SANSEVIERIA_DRY: f32 = 300.0;
+pub const SANSEVIERIA_DRY: f32 = 290.0;
 pub const FICUS_MICROCARPA_DRY: f32 = 742.0;
 pub const FICUS_KINKY_DRY: f32 = 510.0;
 pub const FICUS_BLACK_PRINCE_DRY: f32 = 3650.0;
