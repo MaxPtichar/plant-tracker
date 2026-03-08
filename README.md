@@ -32,9 +32,11 @@ Plants are weighed before watering, after watering, and in between — by tracki
 
 ## Roadmap
 
-- [ ] Telegram bot (async / Tokio / teloxide)
+- [✓] Telegram bot (async / Tokio / teloxide)
 - [ ] Watering notifications
 - [ ] Weight dynamics charts
+- [ ] Add support for all spiecies
+- [ ] Add per-user database (multi-user support)
 
 ## Status
 
