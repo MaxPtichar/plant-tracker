@@ -7,6 +7,7 @@ use crate::bot::{HandlerResult, MeasurementDialogue, MyDialogue};
 
 use crate::operations::{get_avr_r_for_each_plant, get_predicate};
 use crate::storage::load;
+use crate::bot::user::save_chat_id;
 
 #[derive(BotCommands, Clone)]
 #[command(rename_rule = "lowercase")]
@@ -29,6 +30,7 @@ pub async fn handle_command(
 ) -> HandlerResult {
     match cmd {
         Command::Start => {
+            save_chat_id(msg.chat.id);
             bot.send_message(msg.chat.id, "Выбери действие: ")
                 .reply_markup(main_menu_buttons())
                 .await?;
