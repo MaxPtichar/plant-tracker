@@ -2,11 +2,11 @@ pub const COUNT_PLANT_TYPE: u32 = 5;
 
 // Порог остаточной влаги (доля от 0.0 до 1.0)
 
-pub const CHLOROPHYTUM_THRESHOLD: f32 = 0.30; // Хлорофитум
-pub const SANSEVIERIA_THRESHOLD: f32 = 0.12; // Сансевиерия
-pub const FICUS_MICROCARPA_THRESHOLD: f32 = 0.25; // Фикус микрокарпа
-pub const FICUS_KINKY_THRESHOLD: f32 = 0.30; // Фикус Кинки
-pub const FICUS_BLACK_PRINCE_THRESHOLD: f32 = 0.25; // Фикус Чёрный принц
+pub const CHLOROPHYTUM_THRESHOLD: f32 = 0.05; // Хлорофитум
+pub const SANSEVIERIA_THRESHOLD: f32 = 0.05; // Сансевиерия
+pub const FICUS_MICROCARPA_THRESHOLD: f32 = 0.05; // Фикус микрокарпа
+pub const FICUS_KINKY_THRESHOLD: f32 = 0.12; // Фикус Кинки
+pub const FICUS_BLACK_PRINCE_THRESHOLD: f32 = 0.08; // Фикус Чёрный принц
 
 pub const CHLOROPHYTUM_DRY: f32 = 373.0;
 pub const SANSEVIERIA_DRY: f32 = 290.0;
