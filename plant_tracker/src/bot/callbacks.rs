@@ -18,6 +18,7 @@ pub fn parse_main_menu_buttons(q: &str) -> Option<Command> {
     match q {
         "status" => Some(Command::Status),
         "Addmeasurement" => Some(Command::Addmeasurement),
+        "LastFeed" => Some(Command::LastFeed),
 
         _ => None,
     }
