@@ -1,5 +1,5 @@
 use teloxide::prelude::*;
-use teloxide::utils::command::{self, BotCommands};
+use teloxide::utils::command::{BotCommands};
 
 use crate::bot::callbacks::parse_main_menu_buttons;
 use crate::bot::keyboards::{main_menu_buttons, plant_keyboard};

@@ -114,9 +114,6 @@ impl Plant {
         self.avg_r = avg;
     }
 
-    pub fn print_plants(plants: &Vec<Plant>) {
-        println!("{:?}", plants)
-    }
 }
 
 pub enum WateringStatus {
