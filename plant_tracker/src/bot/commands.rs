@@ -1,13 +1,13 @@
 use teloxide::prelude::*;
-use teloxide::utils::command::BotCommands;
+use teloxide::utils::command::{self, BotCommands};
 
 use crate::bot::callbacks::parse_main_menu_buttons;
 use crate::bot::keyboards::{main_menu_buttons, plant_keyboard};
 use crate::bot::{HandlerResult, MeasurementDialogue, MyDialogue};
 
-use crate::operations::{get_avr_r_for_each_plant, get_predicate};
-use crate::storage::load;
 use crate::bot::user::save_chat_id;
+use crate::operations::{get_avr_r_for_each_plant, get_predicate, last_feed};
+use crate::storage::load;
 
 #[derive(BotCommands, Clone)]
 #[command(rename_rule = "lowercase")]
@@ -18,6 +18,8 @@ pub enum Command {
     Status,
     #[command(description = "Добавить измерение")]
     Addmeasurement,
+    #[command(description = "Последняя прикормка")]
+    LastFeed,
     #[command(description = "Отменить действие")]
     Cancel,
 }
@@ -51,6 +53,11 @@ pub async fn handle_command(
             bot.send_message(msg.chat.id, "Выбери растение: ")
                 .reply_markup(plant_keyboard(&plants))
                 .await?;
+        }
+
+        Command::LastFeed => {
+            let plants = load();
+            bot.send_message(msg.chat.id, last_feed(&plants)).await?;
         }
 
         Command::Cancel => {
@@ -96,6 +103,10 @@ pub async fn handle_menu_buttons(
             bot.send_message(chat_id, "Выбери растение: ")
                 .reply_markup(plant_keyboard(&plants))
                 .await?;
+        }
+        Command::LastFeed => {
+            let plants = load();
+            bot.send_message(chat_id, last_feed(&plants)).await?;
         }
 
         Command::Cancel => {
