@@ -6,7 +6,6 @@ mod operations;
 mod models;
 mod storage;
 
-mod test;
 
 #[tokio::main]
 async fn main() {
