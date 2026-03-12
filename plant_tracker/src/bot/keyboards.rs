@@ -20,7 +20,7 @@ pub fn main_menu_buttons() -> InlineKeyboardMarkup {
             "Последняя прикормка",
             "LastFeed",
         )],
-        vec![InlineKeyboardButton::callback("Отмена", "Cancel")],
+        
     ])
 }
 
