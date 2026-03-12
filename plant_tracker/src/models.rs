@@ -134,9 +134,15 @@ impl fmt::Display for WateringStatus {
             WateringStatus::Soon(days) => write!(
                 f,
                 "🕐 Полить в ближайшие дни - {} {} до полива",
-                days.round(), watering_status_days_name(*days)
+                days.round(),
+                watering_status_days_name(*days)
             ),
-            WateringStatus::Wait(days) => write!(f, "✅ Ещё {} {}", days.round(), watering_status_days_name(*days)),
+            WateringStatus::Wait(days) => write!(
+                f,
+                "✅ Ещё {} {}",
+                days.round(),
+                watering_status_days_name(*days)
+            ),
         }
     }
 }
@@ -150,18 +156,15 @@ pub fn watering_status(days: f32) -> WateringStatus {
     }
 }
 
-
-
 fn watering_status_days_name(days: f32) -> &'static str {
     let days_round = days.round() as u32;
-   if (11..=14).contains(&(days_round % 100)) {
-    "дней"
-} else {
-    match days_round % 10 {
-        1 => "день",
-        2 | 3 | 4 => "дня",
-        _ => "дней",
+    if (11..=14).contains(&(days_round % 100)) {
+        "дней"
+    } else {
+        match days_round % 10 {
+            1 => "день",
+            2 | 3 | 4 => "дня",
+            _ => "дней",
+        }
     }
-}
-
 }
