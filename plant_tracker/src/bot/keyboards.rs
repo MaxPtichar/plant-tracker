@@ -16,6 +16,10 @@ pub fn main_menu_buttons() -> InlineKeyboardMarkup {
             "Добавить показания",
             "Addmeasurement",
         )],
+        vec![InlineKeyboardButton::callback(
+            "Последняя прикормка",
+            "LastFeed",
+        )],
         vec![InlineKeyboardButton::callback("Отмена", "Cancel")],
     ])
 }
