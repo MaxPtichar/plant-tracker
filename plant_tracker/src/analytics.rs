@@ -1,5 +1,31 @@
+use chrono::{Days, NaiveDate};
+use serde::de::value;
+
 use crate::models::{Measurement, MeasurementType, Plant, PlantBehavoir};
 
+//return last date when was watering with feed
+pub fn last_plant_feed(plant: &Plant) -> Option<NaiveDate> {
+    plant
+        .measurements
+        .iter()
+        .filter_map(|f| {
+            if f.type_ == MeasurementType::AfterWateringWithFeed {
+                Some(f.date)
+            } else {
+                None
+            }
+        })
+        .last()
+}
+
+pub fn days_from_last_feed(plant: &Plant) -> u32 {
+    let date = match last_plant_feed(plant) {
+        Some(value) => value,
+        _ => return 0,
+    };
+
+    (chrono::Local::now().date_naive() - date).num_days() as u32
+}
 
 /// return days for watering
 pub fn days_until_watering(plant: &Plant) -> Option<f32> {
