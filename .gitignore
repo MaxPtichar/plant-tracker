@@ -18,6 +18,8 @@ target
 plant_tracker/data/plants.json
 plant_tracker/data/backups
 plant_tracker/data/chat_id.txt
+plant_tracker/src/test.rs
+
 
 # RustRover
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
