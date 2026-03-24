@@ -1,6 +1,6 @@
 use std::fs;
 
-use crate::models::Plant;
+use crate::models_old::Plant;
 
 pub fn save(plants: &[Plant]) {
     fs::create_dir_all("data").unwrap();

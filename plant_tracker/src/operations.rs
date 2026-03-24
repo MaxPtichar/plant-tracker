@@ -1,7 +1,7 @@
 use crate::analytics::{days_until_watering, get_avg_r, last_plant_feed};
 
 use crate::analytics::days_from_last_feed;
-use crate::models::{Measurement, MeasurementType, Plant, watering_status};
+use crate::models_old::{Measurement, MeasurementType, Plant, watering_status};
 use crate::storage::save;
 
 use chrono::NaiveDate;

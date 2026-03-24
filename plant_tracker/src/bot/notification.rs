@@ -1,6 +1,6 @@
 use crate::analytics::days_until_watering;
 use crate::bot::user::load_chat_id;
-use crate::models::watering_status;
+use crate::models_old::watering_status;
 use crate::storage::load;
 
 use teloxide::Bot;

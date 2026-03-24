@@ -1,0 +1,27 @@
+DROP TABLE IF EXISTS pot_configs;
+DROP TABLE IF EXISTS plants;
+DROP TABLE IF EXISTS users;
+
+
+
+CREATE TABLE users (
+    id INTEGER PRIMARY KEY,
+    username TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE plants (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    plants_name TEXT NOT NULL
+);
+
+
+
+CREATE TABLE pot_configs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    plant_id INTEGER NOT NULL REFERENCES plants(id),
+    pot_weight INTEGER ,
+    dry_soil_weight INTEGER,
+    is_active INTEGER DEFAULT 1
+);

@@ -1,7 +1,7 @@
 use chrono::NaiveDate;
 
 
-use crate::models::{Measurement, MeasurementType, Plant, PlantBehavoir};
+use crate::models_old::{Measurement, MeasurementType, Plant, PlantBehavoir};
 
 //return last date when was watering with feed
 pub fn last_plant_feed(plant: &Plant) -> Option<NaiveDate> {

@@ -3,7 +3,7 @@ use teloxide::prelude::*;
 use crate::bot::callbacks::{parse_date, parse_measurement_type};
 use crate::bot::keyboards::{back_to, date_keyboard, measurement_type_keyboard, plant_keyboard};
 use crate::bot::{HandlerResult, MyDialogue};
-use crate::models::MeasurementType;
+use crate::models_old::MeasurementType;
 use crate::operations::add_new_measurement;
 use crate::storage::load;
 

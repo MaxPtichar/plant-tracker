@@ -1,4 +1,4 @@
-use crate::models::Plant;
+use crate::models_old::Plant;
 
 use teloxide::types::{InlineKeyboardButton, InlineKeyboardMarkup};
 
