@@ -15,15 +15,13 @@ pub fn load() -> Vec<Plant> {
     match fs::read_to_string(path) {
         Ok(content) => serde_json::from_str(&content).unwrap_or_default(),
         Err(_) => {
-            
             if let Ok(initial_json) = std::env::var("INITIAL_PLANTS_JSON") {
                 let _ = fs::create_dir_all("data");
                 let _ = fs::write(path, &initial_json);
                 println!("🚀 База данных инициализирована из INITIAL_PLANTS_JSON");
                 return serde_json::from_str(&initial_json).unwrap_or_default();
             }
-            
-            
+
             vec![]
         }
     }

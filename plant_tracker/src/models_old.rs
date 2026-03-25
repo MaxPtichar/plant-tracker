@@ -113,7 +113,6 @@ impl Plant {
     pub fn update_avg_r(&mut self, avg: Option<f32>) {
         self.avg_r = avg;
     }
-
 }
 
 pub enum WateringStatus {
