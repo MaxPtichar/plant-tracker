@@ -10,6 +10,7 @@ pub use commands::Command;
 pub use dialogue::MeasurementDialogue;
 
 use dotenvy::dotenv;
+use sqlx::pool;
 use teloxide::dispatching::Dispatcher;
 use teloxide::dispatching::dialogue::{self as tg_dialogue, InMemStorage};
 use teloxide::utils::command::BotCommands;
@@ -22,7 +23,8 @@ use crate::bot::commands::{handle_command, handle_menu_buttons};
 use crate::bot::dialogue::{receive_plant, receive_type, receive_weight, recieve_date};
 use crate::bot::notification::chat_notification;
 use crate::operations;
-use crate::storage::{load, save};
+use sqlx::postgres::PgPoolOptions;
+use sqlx::PgPool;
 
 pub type MyDialogue = Dialogue<MeasurementDialogue, InMemStorage<MeasurementDialogue>>;
 pub type HandlerResult = Result<(), Box<dyn std::error::Error + Send + Sync>>;
@@ -31,19 +33,26 @@ pub async fn plant_bot() {
     dotenv().ok();
 
     let bot = Bot::from_env();
+    let pool = PgPoolOptions::new()
+    .max_connections(5)
+    .connect(&std::env::var("DATABASE_URL").expect("DATABASE_URL not set"))
+    .await
+    .expect("Failed to connect to database");
 
     let bot_clone = bot.clone();
-    tokio::spawn(notification_loop(bot_clone));
+    let pool_clone = pool.clone();
+    tokio::spawn(notification_loop(bot_clone, pool));
 
     bot.set_my_commands(commands::Command::bot_commands())
         .await
         .unwrap();
 
-    let mut plants = load();
-    operations::get_avr_r_for_each_plant(&mut plants);
-    save(&plants);
+    
 
-    let dependencies = dptree::deps![InMemStorage::<MeasurementDialogue>::new()];
+
+    
+
+    let dependencies = dptree::deps![InMemStorage::<MeasurementDialogue>::new(), pool];
 
     let handler = tg_dialogue::enter::<
         Update,
@@ -92,7 +101,7 @@ pub async fn plant_bot() {
         .await;
 }
 
-async fn notification_loop(bot_clone: Bot) {
+async fn notification_loop(bot_clone: Bot, pool: Pgpool) {
     loop {
         let now = Local::now();
         if now.hour() == 10 && now.minute() == 0 {

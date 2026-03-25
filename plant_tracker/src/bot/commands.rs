@@ -1,3 +1,4 @@
+use sqlx::PgPool;
 use teloxide::prelude::*;
 use teloxide::utils::command::BotCommands;
 
@@ -29,6 +30,7 @@ pub async fn handle_command(
     msg: Message,
     cmd: Command,
     dialogue: MyDialogue,
+    pool: PgPool
 ) -> HandlerResult {
     match cmd {
         Command::Start => {

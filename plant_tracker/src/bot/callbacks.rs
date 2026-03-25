@@ -4,7 +4,7 @@ use teloxide::prelude::*;
 
 use crate::bot::keyboards::main_menu_buttons;
 use crate::bot::{Command, HandlerResult, MyDialogue};
-use crate::models_old::MeasurementType;
+use crate::models::MeasurementType;
 
 pub fn parse_date(q: &str) -> Option<NaiveDate> {
     match q {
