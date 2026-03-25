@@ -1,3 +1,4 @@
+use crate::models::Plant as other_plant;
 use crate::models_old::Plant;
 
 use teloxide::types::{InlineKeyboardButton, InlineKeyboardMarkup};
@@ -8,6 +9,16 @@ pub fn back_to() -> InlineKeyboardMarkup {
         "cancel_action",
     )]])
 }
+
+
+pub fn add_new_plant_buttton() -> InlineKeyboardMarkup {
+    InlineKeyboardMarkup::new(vec![vec![InlineKeyboardButton::callback(
+        "Добавить растение",
+        "CreatePlant",
+    )]])
+}
+
+
 
 pub fn main_menu_buttons() -> InlineKeyboardMarkup {
     InlineKeyboardMarkup::new(vec![

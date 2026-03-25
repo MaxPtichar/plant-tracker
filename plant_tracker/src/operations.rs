@@ -52,7 +52,7 @@ pub fn get_predicate(plants: &Vec<Plant>) -> String {
 // add new measurement
 pub fn add_new_measurement(
     plants: &mut Vec<Plant>,
-    id: u32,
+    id: i64,
     weight: f32,
     date: NaiveDate,
     type_: MeasurementType,
@@ -73,6 +73,6 @@ pub fn add_new_measurement(
 }
 
 //find plant in vec<Plants> from load() func
-fn find_plant<'a>(plants: &'a mut Vec<Plant>, choosen_id: u32) -> Option<&'a mut Plant> {
-    plants.iter_mut().find(|p| p.id == choosen_id)
+fn find_plant<'a>(plants: &'a mut Vec<Plant>, choosen_id: i64) -> Option<&'a mut Plant> {
+    plants.iter_mut().find(|p| p.id as i64  == choosen_id)
 }

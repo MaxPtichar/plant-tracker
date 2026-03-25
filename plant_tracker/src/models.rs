@@ -1,6 +1,7 @@
 use chrono::{DateTime, NaiveDate, Utc};
 use sqlx::FromRow;
 
+#[derive(Debug, Clone, Copy)]
 pub enum MeasurementType {
     Regular,
     AfterWatering,

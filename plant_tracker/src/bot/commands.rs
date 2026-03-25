@@ -1,13 +1,15 @@
 use sqlx::PgPool;
+use teloxide::dispatching::dialogue::GetChatId;
 use teloxide::prelude::*;
 use teloxide::utils::command::BotCommands;
 
 use crate::bot::callbacks::parse_main_menu_buttons;
-use crate::bot::keyboards::{main_menu_buttons, plant_keyboard};
+use crate::bot::keyboards::{add_new_plant_buttton, main_menu_buttons, plant_keyboard};
 use crate::bot::{HandlerResult, MeasurementDialogue, MyDialogue};
 
 use crate::bot::user::save_chat_id;
 use crate::operations::{get_avr_r_for_each_plant, get_predicate, last_feed};
+use crate::db_operations;
 use crate::storage::load;
 
 #[derive(BotCommands, Clone)]
@@ -15,6 +17,8 @@ use crate::storage::load;
 pub enum Command {
     #[command(description = "Главное меню")]
     Start,
+    #[command(description = "Добавить новое растение")]
+    CreatePlant,
     #[command(description = "Когда поливать")]
     Status,
     #[command(description = "Добавить измерение")]
@@ -32,13 +36,28 @@ pub async fn handle_command(
     dialogue: MyDialogue,
     pool: PgPool
 ) -> HandlerResult {
+    
+    let username = msg.chat.username();
+    let chat_id_i64 = msg.chat.id.0;
     match cmd {
         Command::Start => {
-            save_chat_id(msg.chat.id);
+            db_operations::create_user(&pool, chat_id_i64, username).await?;
             bot.send_message(msg.chat.id, "Выбери действие: ")
                 .reply_markup(main_menu_buttons())
                 .await?;
         }
+
+        Command::CreatePlant => {
+            dialogue.update(MeasurementDialogue::WaitingForPlant).await?;
+             bot.send_message(msg.chat.id, "Введите название растения")
+             .reply_markup(add_new_plant_buttton()).await?
+             ;
+        }
+
+        
+
+
+
 
         Command::Status => {
             let plants = load();
@@ -74,6 +93,7 @@ pub async fn handle_menu_buttons(
     bot: Bot,
     q: CallbackQuery,
     dialogue: MyDialogue,
+    pool: PgPool
 ) -> HandlerResult {
     bot.answer_callback_query(q.id.clone()).await?;
 
@@ -84,13 +104,26 @@ pub async fn handle_menu_buttons(
     };
 
     let chat_id = q.message.as_ref().unwrap().chat().id;
+    let username = q.from.username.as_deref();
+    let chat_id_i64 =chat_id.0;
 
     match cmd {
         Command::Start => {
+            db_operations::create_user(&pool, chat_id_i64, username).await?;
             bot.send_message(chat_id, "Выбери действие: ")
                 .reply_markup(main_menu_buttons())
                 .await?;
         }
+
+        Command::CreatePlant => {
+           dialogue.update(MeasurementDialogue::WaitingForPlant).await?;
+            bot.send_message(chat_id, "Введите название растения")
+            .reply_markup(add_new_plant_buttton())
+            .await?;
+        }
+
+
+
         Command::Status => {
             let mut plants = load();
             get_avr_r_for_each_plant(&mut plants);

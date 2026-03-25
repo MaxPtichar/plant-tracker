@@ -41,7 +41,7 @@ pub async fn plant_bot() {
 
     let bot_clone = bot.clone();
     let pool_clone = pool.clone();
-    tokio::spawn(notification_loop(bot_clone, pool));
+    tokio::spawn(notification_loop(bot_clone, pool_clone));
 
     bot.set_my_commands(commands::Command::bot_commands())
         .await
@@ -92,7 +92,10 @@ pub async fn plant_bot() {
     )
     .branch(Update::filter_message().branch(
         dptree::case![MeasurementDialogue::WaitingForWeight { plant_id }].endpoint(receive_weight),
-    ));
+    ))
+    .branch(Update::filter_message().branch(  // новое
+    dptree::case![MeasurementDialogue::WaitingForPlant].endpoint(dialogue::get_plant_name),
+));
 
     Dispatcher::builder(bot, handler)
         .dependencies(dependencies)
@@ -101,7 +104,7 @@ pub async fn plant_bot() {
         .await;
 }
 
-async fn notification_loop(bot_clone: Bot, pool: Pgpool) {
+async fn notification_loop(bot_clone: Bot, pool_clone: PgPool) {
     loop {
         let now = Local::now();
         if now.hour() == 10 && now.minute() == 0 {
