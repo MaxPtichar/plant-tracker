@@ -92,10 +92,7 @@ pub async fn plant_bot() {
     )
     .branch(Update::filter_message().branch(
         dptree::case![MeasurementDialogue::WaitingForWeight { plant_id }].endpoint(receive_weight),
-    ))
-    .branch(Update::filter_message().branch(  // новое
-    dptree::case![MeasurementDialogue::WaitingForPlant].endpoint(dialogue::get_plant_name),
-));
+    ));
 
     Dispatcher::builder(bot, handler)
         .dependencies(dependencies)

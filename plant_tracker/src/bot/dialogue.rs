@@ -1,11 +1,13 @@
-use sqlx::PgPool;
+use sqlx::{PgPool, pool};
 use teloxide::prelude::*;
 
 use crate::bot::callbacks::{parse_date, parse_measurement_type};
 use crate::bot::keyboards::{back_to, date_keyboard, measurement_type_keyboard, plant_keyboard};
 use crate::bot::{HandlerResult, MyDialogue};
 use crate::db_operations;
-use crate::models_old::MeasurementType  as MeasurementTypeOld;
+use crate::models_old::MeasurementType;
+use crate::models::Plant;
+
 use crate::operations::add_new_measurement;
 use crate::storage::load;
 
@@ -13,20 +15,17 @@ use crate::storage::load;
 pub enum MeasurementDialogue {
     #[default]
     WaitingForPlant,
-    WaitingForPlantName {
-        name: String,
-    },
     WaitingForWeight {
-        plant_id: i64,
+        plant_id: u32,
     },
     WaitingForType {
-        plant_id: i64,
+        plant_id: u32,
         weight: f32,
     },
     WaitingForDate {
-        plant_id: i64,
+        plant_id: u32,
         weight: f32,
-        type_: MeasurementTypeOld,
+        type_: MeasurementType,
     },
 }
 
@@ -35,7 +34,7 @@ pub async fn receive_weight(
     bot: Bot,
     dialogue: MyDialogue,
     msg: Message,
-    plant_id: i64,
+    plant_id: u32,
 ) -> HandlerResult {
     match msg.text() {
         Some(text) => match text.parse::<f32>() {
@@ -67,7 +66,7 @@ pub async fn receive_type(
     bot: Bot,
     dialogue: MyDialogue,
     q: CallbackQuery,
-    (plant_id, weight): (i64, f32),
+    (plant_id, weight): (u32, f32),
 ) -> HandlerResult {
     if let Some(data) = q.data {
         bot.answer_callback_query(q.id).await?;
@@ -94,7 +93,8 @@ pub async fn recieve_date(
     bot: Bot,
     dialogue: MyDialogue,
     q: CallbackQuery,
-    (plant_id, weight, type_): (i64, f32, MeasurementTypeOld),
+    pool: PgPool,
+    (plant_id, weight, type_): (u32, f32, MeasurementType),
 ) -> HandlerResult {
     let chat_id = q.message.unwrap().chat().id;
 
@@ -111,8 +111,8 @@ pub async fn recieve_date(
             )
             .await?;
 
-            let mut plants = load();
-            add_new_measurement(&mut plants, plant_id, weight, date, type_);
+            let mut plants: Vec<crate::models::Plant> =db_operations::get_user_plants(&pool, chat_id.0).await?;
+            // add_new_measurement(&mut plants, plant_id as i64, weight, date, type_);
 
             dialogue
                 .update(MeasurementDialogue::WaitingForPlant)
@@ -132,7 +132,7 @@ pub async fn recieve_date(
 // get id plant
 pub async fn receive_plant(bot: Bot, q: CallbackQuery, dialogue: MyDialogue) -> HandlerResult {
     if let Some(data) = q.data {
-        let plant_id: i64 = data.parse().unwrap();
+        let plant_id: u32 = data.parse().unwrap();
         bot.answer_callback_query(q.id).await?;
 
         dialogue
@@ -146,26 +146,3 @@ pub async fn receive_plant(bot: Bot, q: CallbackQuery, dialogue: MyDialogue) -> 
     }
     Ok(())
 }
-
-
-// get plant_name
-pub async fn get_plant_name(bot: Bot, msg: Message, dialogue: MyDialogue, pool: PgPool) -> HandlerResult {
-   let plant_name = msg.text().unwrap_or("");
-   let chat_id = msg.chat.id.0;
-
-
-   db_operations::create_new_plant(&pool, chat_id, plant_name).await?;
-
-    
-
-        dialogue
-            .update(MeasurementDialogue::default())
-            .await?;
-
-        bot.send_message(msg.chat.id, "Растение добавлено")
-         .await?;
-    
-    Ok(())
-}
-
-

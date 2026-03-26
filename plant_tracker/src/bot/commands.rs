@@ -67,7 +67,7 @@ pub async fn handle_command(
         }
 
         Command::Addmeasurement => {
-            let plants = load();
+            let plants: Vec<crate::models::Plant> = db_operations::get_user_plants(&pool, chat_id_i64).await?;
             dialogue
                 .update(MeasurementDialogue::WaitingForPlant)
                 .await?;
@@ -131,7 +131,7 @@ pub async fn handle_menu_buttons(
         }
 
         Command::Addmeasurement => {
-            let plants = load();
+            let plants: Vec<crate::models::Plant> = db_operations::get_user_plants(&pool, chat_id_i64).await?;
             dialogue
                 .update(MeasurementDialogue::WaitingForPlant)
                 .await?;

@@ -34,13 +34,15 @@ pub fn main_menu_buttons() -> InlineKeyboardMarkup {
     ])
 }
 
-pub fn plant_keyboard(plants: &[Plant]) -> InlineKeyboardMarkup {
+pub fn plant_keyboard(plants: &[other_plant]) -> InlineKeyboardMarkup {
+
+
     InlineKeyboardMarkup::new(
         plants
             .iter()
             .map(|x| {
                 vec![InlineKeyboardButton::callback(
-                    x.name.clone(),
+                    x.plants_name.clone(),
                     x.id.to_string(),
                 )]
             })
