@@ -5,7 +5,7 @@ use crate::bot::callbacks::{parse_date, parse_measurement_type};
 use crate::bot::keyboards::{back_to, date_keyboard, measurement_type_keyboard, plant_keyboard};
 use crate::bot::{HandlerResult, MyDialogue};
 use crate::db_operations;
-use crate::models_old::MeasurementType;
+use crate::models::MeasurementType as MT;
 use crate::models::Plant;
 
 use crate::operations::add_new_measurement;
@@ -16,16 +16,16 @@ pub enum MeasurementDialogue {
     #[default]
     WaitingForPlant,
     WaitingForWeight {
-        plant_id: u32,
+        plant_id: i64,
     },
     WaitingForType {
-        plant_id: u32,
+        plant_id: i64,
         weight: f32,
     },
     WaitingForDate {
-        plant_id: u32,
+        plant_id: i64,
         weight: f32,
-        type_: MeasurementType,
+        type_: MT,
     },
 }
 
@@ -34,7 +34,7 @@ pub async fn receive_weight(
     bot: Bot,
     dialogue: MyDialogue,
     msg: Message,
-    plant_id: u32,
+    plant_id: i64,
 ) -> HandlerResult {
     match msg.text() {
         Some(text) => match text.parse::<f32>() {
@@ -66,7 +66,7 @@ pub async fn receive_type(
     bot: Bot,
     dialogue: MyDialogue,
     q: CallbackQuery,
-    (plant_id, weight): (u32, f32),
+    (plant_id, weight): (i64, f32),
 ) -> HandlerResult {
     if let Some(data) = q.data {
         bot.answer_callback_query(q.id).await?;
@@ -94,7 +94,7 @@ pub async fn recieve_date(
     dialogue: MyDialogue,
     q: CallbackQuery,
     pool: PgPool,
-    (plant_id, weight, type_): (u32, f32, MeasurementType),
+    (plant_id, weight, type_): (i64, f32, MT),
 ) -> HandlerResult {
     let chat_id = q.message.unwrap().chat().id;
 
@@ -111,9 +111,10 @@ pub async fn recieve_date(
             )
             .await?;
 
-            let mut plants: Vec<crate::models::Plant> =db_operations::get_user_plants(&pool, chat_id.0).await?;
+            let  plants: Vec<crate::models::Plant> =db_operations::get_user_plants(&pool, chat_id.0).await?;
+            
             // add_new_measurement(&mut plants, plant_id as i64, weight, date, type_);
-
+            db_operations::create_measurement(&pool, plant_id, weight, date, type_.to_string()).await?;
             dialogue
                 .update(MeasurementDialogue::WaitingForPlant)
                 .await?;
@@ -132,7 +133,7 @@ pub async fn recieve_date(
 // get id plant
 pub async fn receive_plant(bot: Bot, q: CallbackQuery, dialogue: MyDialogue) -> HandlerResult {
     if let Some(data) = q.data {
-        let plant_id: u32 = data.parse().unwrap();
+        let plant_id: i64 = data.parse().unwrap();
         bot.answer_callback_query(q.id).await?;
 
         dialogue
