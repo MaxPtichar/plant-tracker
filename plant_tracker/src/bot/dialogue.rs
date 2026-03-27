@@ -1,20 +1,23 @@
+use std::default;
+
+use serde::de::value;
 use sqlx::{PgPool, pool};
+use teloxide::dispatching::dialogue::GetChatId;
 use teloxide::prelude::*;
 
 use crate::bot::callbacks::{parse_date, parse_measurement_type};
+use crate::bot::keyboards::{get_type_of_moisture, main_menu_buttons};
 use crate::bot::keyboards::{back_to, date_keyboard, measurement_type_keyboard, plant_keyboard};
 use crate::bot::{HandlerResult, MyDialogue};
 use crate::db_operations;
 use crate::models::MeasurementType as MT;
 use crate::models::Plant;
 
-use crate::operations::add_new_measurement;
-use crate::storage::load;
-
 #[derive(Clone, Default)]
 pub enum MeasurementDialogue {
     #[default]
     WaitingForPlant,
+    CreatingPlant(PlantCreationDialogue),
     WaitingForWeight {
         plant_id: i64,
     },
@@ -111,10 +114,12 @@ pub async fn recieve_date(
             )
             .await?;
 
-            let  plants: Vec<crate::models::Plant> =db_operations::get_user_plants(&pool, chat_id.0).await?;
-            
+            let plants: Vec<crate::models::Plant> =
+                db_operations::get_user_plants(&pool, chat_id.0).await?;
+
             // add_new_measurement(&mut plants, plant_id as i64, weight, date, type_);
-            db_operations::create_measurement(&pool, plant_id, weight, date, type_.to_string()).await?;
+            db_operations::create_measurement(&pool, plant_id, weight, date, type_.to_string())
+                .await?;
             dialogue
                 .update(MeasurementDialogue::WaitingForPlant)
                 .await?;
@@ -145,5 +150,104 @@ pub async fn receive_plant(bot: Bot, q: CallbackQuery, dialogue: MyDialogue) -> 
             .reply_markup(back_to())
             .await?;
     }
+    Ok(())
+}
+
+/// остановился здесь
+
+#[derive(Clone, Default)]
+pub enum PlantCreationDialogue {
+    #[default]
+    WaitingForName,
+    WaitingForMoisture {
+        name: String,
+    },
+    WaitingForCustomMoisture {
+        name: String,
+    },
+}
+
+//нужно написать три обработчика
+//три обаботчка - первый котоырй кнопки обрабатывает - второй текстовый ввод - и третрий который собирает все
+pub async fn get_plant_name(bot: Bot, dialogue: MyDialogue, msg: Message) -> HandlerResult {
+    match msg.text() {
+        Some(plants_name) => {
+            let name = plants_name.to_string();
+
+            dialogue
+                .update(MeasurementDialogue::CreatingPlant(
+                    PlantCreationDialogue::WaitingForMoisture { name },
+                ))
+                .await?;
+            bot.send_message(msg.chat.id, "Введите остаточный % влаги в горшке")
+                .reply_markup(get_type_of_moisture())
+                .await?;
+        }
+        None => {
+            bot.send_message(msg.chat.id, "Растение должно иметь название!")
+                .await?;
+        }
+    }
+
+    Ok(())
+}
+
+pub async fn get_moisture(
+    bot: Bot,
+    dialogue: MyDialogue,
+    q: CallbackQuery,
+    pool: PgPool,
+    name: String,
+) -> HandlerResult {
+    let chat_id = q.message.unwrap().chat().id;
+    if let Some(data) = q.data {
+        if data == "custom" {
+            dialogue
+                .update(MeasurementDialogue::CreatingPlant(
+                    PlantCreationDialogue::WaitingForCustomMoisture { name },
+                ))
+                .await?;
+            bot.send_message(chat_id, "Введите число от 0.1 до 1.0 (например, 0.25):")
+                .await?;
+        } else {
+            let moisture: f32 = data.parse().unwrap_or(0.3);
+
+            db_operations::create_new_plant(&pool, chat_id.0, &name, moisture).await?;
+
+            bot.send_message(chat_id, format!("🌿 Растение '{name}' добавлено!"))
+                .reply_markup(main_menu_buttons())
+                .await?;
+            dialogue.exit().await?;
+        }
+    }
+    bot.answer_callback_query(q.id).await?;
+    Ok(())
+}
+
+pub async fn get_custom_moisture(
+    bot: Bot,
+    dialogue: MyDialogue,
+    msg: Message,
+    pool: PgPool,
+    name: String,
+) -> HandlerResult {
+    if let Some(text) = msg.text() {
+        if let Ok(val) = text.replace(",", ".").parse::<f32>() {
+            if (0.0..=1.0).contains(&val) {
+                db_operations::create_new_plant(&pool, msg.chat.id.0, &name, val).await?;
+                bot.send_message(msg.chat.id, "✅ Сохранено!")
+                .reply_markup(main_menu_buttons())
+                .await?;
+                dialogue.exit().await?;
+            } else {
+                bot.send_message(msg.chat.id, "Введите число от 0 до 1.")
+                    .await?;
+            }
+        }
+    } else {
+        bot.send_message(msg.chat.id, "Попробуйте ввести число.")
+            .await?;
+    }
+
     Ok(())
 }

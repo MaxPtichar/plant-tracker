@@ -19,11 +19,17 @@ pub async fn create_user(pool: &PgPool, tg_id: i64, username: Option<&str>) -> s
 
 /// Creates a new plant for the user.
 /// Returns the id of the created plant.
-pub async fn create_new_plant(pool: &PgPool, user_id: i64, plant_name: &str) -> sqlx::Result<i64> {
+pub async fn create_new_plant(
+    pool: &PgPool,
+    user_id: i64,
+    plant_name: &str,
+    target_moisture: f32,
+) -> sqlx::Result<i64> {
     let result = sqlx::query!(
-        "INSERT INTO plants (user_id, plants_name) VALUES ($1, $2) RETURNING id ",
+        "INSERT INTO plants (user_id, plants_name, target_moisture) VALUES ($1, $2, $3) RETURNING id ",
         user_id,
-        plant_name
+        plant_name, 
+        target_moisture
     )
     .fetch_one(pool)
     .await?;
@@ -73,7 +79,7 @@ pub async fn get_active_config(pool: &PgPool, plant_id: i64) -> sqlx::Result<Pot
 pub async fn get_user_plants(pool: &PgPool, user_id: i64) -> sqlx::Result<Vec<Plant>> {
     let plants = sqlx::query_as!(
         Plant,
-        "SELECT id, user_id, plants_name FROM plants WHERE user_id = $1",
+        "SELECT id, user_id, plants_name, target_moisture FROM plants WHERE user_id = $1",
         user_id
     )
     .fetch_all(pool)
@@ -161,7 +167,7 @@ pub async fn delete_plant(pool: &PgPool, plant_id: i64) -> sqlx::Result<()> {
 pub async fn get_plant(pool: &PgPool, plant_id: i64) -> sqlx::Result<Plant> {
     let plant = sqlx::query_as!(
         Plant,
-        "SELECT id, user_id, plants_name FROM plants WHERE id = $1",
+        "SELECT id, user_id, plants_name, target_moisture FROM plants WHERE id = $1",
         plant_id
     )
     .fetch_one(pool)

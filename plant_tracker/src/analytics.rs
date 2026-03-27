@@ -1,6 +1,46 @@
 use chrono::NaiveDate;
 
-use crate::models_old::{Measurement, MeasurementType, Plant, PlantBehavoir};
+
+use crate::models::Measurements;
+
+
+/// return days for watering
+pub fn days_until_watering(measurement: &Measurements) -> Option<f32> {
+    let m_current:f32 = measurement.weight;
+
+    let target_weight = get_target_weight(plant); /// stop here
+
+    let r = get_evaporation_rate(plant);
+
+    if r == 0.0 {
+        return None;
+    }
+
+    let today = chrono::Local::now().date_naive();
+
+    let last_measurements = plant.measurements.last()?;
+    let days_since = (today - last_measurements.date).num_days() as f32;
+
+    let days_left = (m_current - target_weight) / r - days_since;
+
+    Some(days_left)
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 //return last date when was watering with feed
 pub fn last_plant_feed(plant: &Plant) -> Option<NaiveDate> {
@@ -26,30 +66,6 @@ pub fn days_from_last_feed(plant: &Plant) -> u32 {
     (chrono::Local::now().date_naive() - date).num_days() as u32
 }
 
-/// return days for watering
-pub fn days_until_watering(plant: &Plant) -> Option<f32> {
-    let m_current = match get_last_measure(plant) {
-        Some(value) => value,
-        None => return None,
-    };
-
-    let target_weight = get_target_weight(plant);
-
-    let r = get_evaporation_rate(plant);
-
-    if r == 0.0 {
-        return None;
-    }
-
-    let today = chrono::Local::now().date_naive();
-
-    let last_measurements = plant.measurements.last()?;
-    let days_since = (today - last_measurements.date).num_days() as f32;
-
-    let days_left = (m_current - target_weight) / r - days_since;
-
-    Some(days_left)
-}
 
 /// evaputaion rate need for predicate days untill watering
 pub fn get_evaporation_rate(plant: &Plant) -> f32 {

@@ -7,7 +7,7 @@ pub mod user;
 use std::time::Duration;
 
 pub use commands::Command;
-pub use dialogue::MeasurementDialogue;
+pub use dialogue::{MeasurementDialogue, PlantCreationDialogue};
 
 use dotenvy::dotenv;
 use sqlx::pool;
@@ -15,16 +15,18 @@ use teloxide::dispatching::Dispatcher;
 use teloxide::dispatching::dialogue::{self as tg_dialogue, InMemStorage};
 use teloxide::utils::command::BotCommands;
 
+use crate::bot::callbacks::cancel_callback;
+use crate::bot::commands::{handle_command, handle_menu_buttons};
+use crate::bot::dialogue::get_moisture;
+use crate::bot::dialogue::{
+    get_custom_moisture, get_plant_name, receive_plant, receive_type, receive_weight, recieve_date,
+};
+use crate::bot::notification::chat_notification;
 use chrono::{Local, Timelike};
 use teloxide::prelude::*;
 
-use crate::bot::callbacks::cancel_callback;
-use crate::bot::commands::{handle_command, handle_menu_buttons};
-use crate::bot::dialogue::{receive_plant, receive_type, receive_weight, recieve_date};
-use crate::bot::notification::chat_notification;
-use crate::operations;
-use sqlx::postgres::PgPoolOptions;
 use sqlx::PgPool;
+use sqlx::postgres::PgPoolOptions;
 
 pub type MyDialogue = Dialogue<MeasurementDialogue, InMemStorage<MeasurementDialogue>>;
 pub type HandlerResult = Result<(), Box<dyn std::error::Error + Send + Sync>>;
@@ -34,10 +36,10 @@ pub async fn plant_bot() {
 
     let bot = Bot::from_env();
     let pool = PgPoolOptions::new()
-    .max_connections(5)
-    .connect(&std::env::var("DATABASE_URL").expect("DATABASE_URL not set"))
-    .await
-    .expect("Failed to connect to database");
+        .max_connections(5)
+        .connect(&std::env::var("DATABASE_URL").expect("DATABASE_URL not set"))
+        .await
+        .expect("Failed to connect to database");
 
     let bot_clone = bot.clone();
     let pool_clone = pool.clone();
@@ -46,11 +48,6 @@ pub async fn plant_bot() {
     bot.set_my_commands(commands::Command::bot_commands())
         .await
         .unwrap();
-
-    
-
-
-    
 
     let dependencies = dptree::deps![InMemStorage::<MeasurementDialogue>::new(), pool];
 
@@ -61,39 +58,58 @@ pub async fn plant_bot() {
         _,
     >()
     .branch(
-        Update::filter_message()
-            .filter_command::<Command>()
-            .endpoint(handle_command),
-    )
-    .branch(
-        Update::filter_callback_query()
-            .branch(cancel_callback())
-            .branch(
-                dptree::filter(|q: CallbackQuery| {
-                    q.data.as_deref().map_or(false, |d| {
-                        d == "status" || d == "Addmeasurement" || d == "LastFeed" || d == "Cancel"
-                    })
+    Update::filter_message()
+        .filter_command::<Command>()
+        .endpoint(handle_command),
+)
+.branch(
+    Update::filter_message()
+        .branch(
+            dptree::case![MeasurementDialogue::WaitingForWeight { plant_id }]
+                .endpoint(receive_weight),
+        )
+        .branch(
+            dptree::case![MeasurementDialogue::CreatingPlant(inner_dialogue)]
+                .branch(
+                    dptree::case![PlantCreationDialogue::WaitingForName]
+                        .endpoint(get_plant_name),
+                )
+                .branch(
+                    dptree::case![PlantCreationDialogue::WaitingForCustomMoisture { name }]
+                        .endpoint(get_custom_moisture),
+                ),
+        ),
+)
+.branch(
+    Update::filter_callback_query()
+        .branch(cancel_callback())
+        .branch(
+            dptree::filter(|q: CallbackQuery| {
+                q.data.as_deref().map_or(false, |d| {
+                    d == "status" || d == "Addmeasurement" || d == "LastFeed" || d == "Cancel" || d == "CreatePlant"
                 })
-                .endpoint(handle_menu_buttons),
-            )
-            .branch(dptree::case![MeasurementDialogue::WaitingForPlant].endpoint(receive_plant))
-            .branch(
-                dptree::case![MeasurementDialogue::WaitingForType { plant_id, weight }]
-                    .endpoint(receive_type),
-            )
-            .branch(
-                dptree::case![MeasurementDialogue::WaitingForDate {
-                    plant_id,
-                    weight,
-                    type_
-                }]
+            })
+            .endpoint(handle_menu_buttons),
+        )
+        .branch(
+            dptree::case![MeasurementDialogue::CreatingPlant(inner_dialogue)]
+                .branch(
+                    dptree::case![PlantCreationDialogue::WaitingForMoisture { name }]
+                        .endpoint(get_moisture),
+                ),
+        )
+        .branch(
+            dptree::case![MeasurementDialogue::WaitingForPlant].endpoint(receive_plant),
+        )
+        .branch(
+            dptree::case![MeasurementDialogue::WaitingForType { plant_id, weight }]
+                .endpoint(receive_type),
+        )
+        .branch(
+            dptree::case![MeasurementDialogue::WaitingForDate { plant_id, weight, type_ }]
                 .endpoint(recieve_date),
-            ),
-    )
-    .branch(Update::filter_message().branch(
-        dptree::case![MeasurementDialogue::WaitingForWeight { plant_id }].endpoint(receive_weight),
-    ));
-
+        ),
+);
     Dispatcher::builder(bot, handler)
         .dependencies(dependencies)
         .build()

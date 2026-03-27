@@ -16,6 +16,7 @@ pub fn parse_date(q: &str) -> Option<NaiveDate> {
 
 pub fn parse_main_menu_buttons(q: &str) -> Option<Command> {
     match q {
+        "CreatePlant" => Some(Command::CreatePlant),
         "status" => Some(Command::Status),
         "Addmeasurement" => Some(Command::Addmeasurement),
         "LastFeed" => Some(Command::LastFeed),

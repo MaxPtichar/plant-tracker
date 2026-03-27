@@ -1,13 +1,13 @@
-mod analytics;
+// mod analytics;
 mod bot;
 mod constants;
-mod operations;
+// mod operations;
 
 mod db_operations;
 mod models;
-mod models_old;
+// mod models_old;
 
-mod storage;
+// mod storage;
 
 #[tokio::main]
 async fn main() {

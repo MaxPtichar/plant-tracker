@@ -1,5 +1,4 @@
 use core::fmt;
-use std::fmt::write;
 
 use chrono::{DateTime, NaiveDate, Utc};
 use sqlx::FromRow;
@@ -23,6 +22,7 @@ pub struct Plant {
     pub id: i64,
     pub user_id: i64,
     pub plants_name: String,
+    pub target_moisture: f32,
 }
 
 #[derive(Debug, FromRow)]
@@ -54,18 +54,13 @@ impl From<String> for MeasurementType {
     }
 }
 
-
-
 impl fmt::Display for MeasurementType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let s = match self {
-            Self::Regular => "Regular", 
-            Self::AfterWatering => "AfterWatering" ,
-            Self::AfterWateringWithFeed =>"AfterWateringWithFeed",
-
-            
+            Self::Regular => "Regular",
+            Self::AfterWatering => "AfterWatering",
+            Self::AfterWateringWithFeed => "AfterWateringWithFeed",
         };
         write!(f, "{}", s)
     }
-    
 }

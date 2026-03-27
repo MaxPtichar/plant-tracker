@@ -4,13 +4,11 @@ use teloxide::prelude::*;
 use teloxide::utils::command::BotCommands;
 
 use crate::bot::callbacks::parse_main_menu_buttons;
-use crate::bot::keyboards::{add_new_plant_buttton, main_menu_buttons, plant_keyboard};
-use crate::bot::{HandlerResult, MeasurementDialogue, MyDialogue};
-
+use crate::bot::keyboards::add_new_plant_button;
+use crate::bot::keyboards::{main_menu_buttons, plant_keyboard};
 use crate::bot::user::save_chat_id;
-use crate::operations::{get_avr_r_for_each_plant, get_predicate, last_feed};
+use crate::bot::{HandlerResult, MeasurementDialogue, MyDialogue};
 use crate::db_operations;
-use crate::storage::load;
 
 #[derive(BotCommands, Clone)]
 #[command(rename_rule = "lowercase")]
@@ -34,9 +32,8 @@ pub async fn handle_command(
     msg: Message,
     cmd: Command,
     dialogue: MyDialogue,
-    pool: PgPool
+    pool: PgPool,
 ) -> HandlerResult {
-    
     let username = msg.chat.username();
     let chat_id_i64 = msg.chat.id.0;
     match cmd {
@@ -48,26 +45,23 @@ pub async fn handle_command(
         }
 
         Command::CreatePlant => {
-            dialogue.update(MeasurementDialogue::WaitingForPlant).await?;
-             bot.send_message(msg.chat.id, "Введите название растения")
-             .reply_markup(add_new_plant_buttton()).await?
-             ;
-        }
-
-        
-
-
-
-
-        Command::Status => {
-            let plants = load();
-
-            bot.send_message(msg.chat.id, get_predicate(&plants))
+            dialogue
+                .update(MeasurementDialogue::CreatingPlant(super::PlantCreationDialogue::WaitingForName))
+                .await?;
+            bot.send_message(msg.chat.id, "Введите название растения")
                 .await?;
         }
 
+        Command::Status => {
+            // let plants = load();
+
+            // bot.send_message(msg.chat.id, get_predicate(&plants))
+            //     .await?;
+        }
+
         Command::Addmeasurement => {
-            let plants: Vec<crate::models::Plant> = db_operations::get_user_plants(&pool, chat_id_i64).await?;
+            let plants: Vec<crate::models::Plant> =
+                db_operations::get_user_plants(&pool, chat_id_i64).await?;
             dialogue
                 .update(MeasurementDialogue::WaitingForPlant)
                 .await?;
@@ -77,8 +71,8 @@ pub async fn handle_command(
         }
 
         Command::LastFeed => {
-            let plants = load();
-            bot.send_message(msg.chat.id, last_feed(&plants)).await?;
+            // let plants = load();
+            // bot.send_message(msg.chat.id, last_feed(&plants)).await?;
         }
 
         Command::Cancel => {
@@ -93,7 +87,7 @@ pub async fn handle_menu_buttons(
     bot: Bot,
     q: CallbackQuery,
     dialogue: MyDialogue,
-    pool: PgPool
+    pool: PgPool,
 ) -> HandlerResult {
     bot.answer_callback_query(q.id.clone()).await?;
 
@@ -105,7 +99,7 @@ pub async fn handle_menu_buttons(
 
     let chat_id = q.message.as_ref().unwrap().chat().id;
     let username = q.from.username.as_deref();
-    let chat_id_i64 =chat_id.0;
+    let chat_id_i64 = chat_id.0;
 
     match cmd {
         Command::Start => {
@@ -116,22 +110,22 @@ pub async fn handle_menu_buttons(
         }
 
         Command::CreatePlant => {
-           dialogue.update(MeasurementDialogue::WaitingForPlant).await?;
+            dialogue
+                .update(MeasurementDialogue::CreatingPlant(super::PlantCreationDialogue::WaitingForName))
+                .await?;
             bot.send_message(chat_id, "Введите название растения")
-            .reply_markup(add_new_plant_buttton())
-            .await?;
+                .await?;
         }
 
-
-
         Command::Status => {
-            let mut plants = load();
-            get_avr_r_for_each_plant(&mut plants);
-            bot.send_message(chat_id, get_predicate(&plants)).await?;
+            // let mut plants = load();
+            // get_avr_r_for_each_plant(&mut plants);
+            // bot.send_message(chat_id, get_predicate(&plants)).await?;
         }
 
         Command::Addmeasurement => {
-            let plants: Vec<crate::models::Plant> = db_operations::get_user_plants(&pool, chat_id_i64).await?;
+            let plants: Vec<crate::models::Plant> =
+                db_operations::get_user_plants(&pool, chat_id_i64).await?;
             dialogue
                 .update(MeasurementDialogue::WaitingForPlant)
                 .await?;
@@ -140,8 +134,8 @@ pub async fn handle_menu_buttons(
                 .await?;
         }
         Command::LastFeed => {
-            let plants = load();
-            bot.send_message(chat_id, last_feed(&plants)).await?;
+            // let plants = load();
+            // bot.send_message(chat_id, last_feed(&plants)).await?;
         }
 
         Command::Cancel => {
