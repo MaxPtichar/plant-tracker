@@ -9,6 +9,12 @@ pub enum MeasurementType {
     AfterWatering,
     AfterWateringWithFeed,
 }
+#[derive(Debug, FromRow)]
+pub struct PlantWithLastFeedWatering {
+    pub id: i64,
+    pub plants_name: String,
+    pub date: NaiveDate,
+}
 
 #[derive(Debug, FromRow)]
 pub struct User {
