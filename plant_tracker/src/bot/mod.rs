@@ -1,9 +1,11 @@
 pub mod callbacks;
 pub mod commands;
 pub mod dialogue;
+pub mod handlers;
 pub mod keyboards;
 pub mod notification;
 pub mod user;
+
 use std::time::Duration;
 
 pub use commands::Command;
@@ -17,10 +19,9 @@ use teloxide::utils::command::BotCommands;
 
 use crate::bot::callbacks::cancel_callback;
 use crate::bot::commands::{handle_command, handle_menu_buttons};
-use crate::bot::dialogue::get_moisture;
-use crate::bot::dialogue::{
-    get_custom_moisture, get_plant_name, receive_plant, receive_type, receive_weight, recieve_date,
-};
+use crate::bot::handlers::measurement::receive_plant;
+use crate::bot::handlers::plant_creation::{get_custom_moisture, get_moisture, get_plant_name};
+use crate::bot::handlers::{receive_date, receive_type, receive_weight};
 use crate::bot::notification::chat_notification;
 use chrono::{Local, Timelike};
 use teloxide::prelude::*;
@@ -58,58 +59,67 @@ pub async fn plant_bot() {
         _,
     >()
     .branch(
-    Update::filter_message()
-        .filter_command::<Command>()
-        .endpoint(handle_command),
-)
-.branch(
-    Update::filter_message()
-        .branch(
-            dptree::case![MeasurementDialogue::WaitingForWeight { plant_id }]
-                .endpoint(receive_weight),
-        )
-        .branch(
-            dptree::case![MeasurementDialogue::CreatingPlant(inner_dialogue)]
-                .branch(
-                    dptree::case![PlantCreationDialogue::WaitingForName]
-                        .endpoint(get_plant_name),
-                )
-                .branch(
-                    dptree::case![PlantCreationDialogue::WaitingForCustomMoisture { name }]
-                        .endpoint(get_custom_moisture),
-                ),
-        ),
-)
-.branch(
-    Update::filter_callback_query()
-        .branch(cancel_callback())
-        .branch(
-            dptree::filter(|q: CallbackQuery| {
-                q.data.as_deref().map_or(false, |d| {
-                    d == "status" || d == "Addmeasurement" || d == "LastFeed" || d == "Cancel" || d == "CreatePlant"
+        Update::filter_message()
+            .filter_command::<Command>()
+            .endpoint(handle_command),
+    )
+    .branch(
+        Update::filter_message()
+            .branch(
+                dptree::case![MeasurementDialogue::WaitingForWeight { plant_id, plant_name }]
+                    .endpoint(receive_weight),
+            )
+            .branch(
+                dptree::case![MeasurementDialogue::CreatingPlant(inner_dialogue)]
+                    .branch(
+                        dptree::case![PlantCreationDialogue::WaitingForName]
+                            .endpoint(get_plant_name),
+                    )
+                    .branch(
+                        dptree::case![PlantCreationDialogue::WaitingForCustomMoisture { name }]
+                            .endpoint(get_custom_moisture),
+                    ),
+            ),
+    )
+    .branch(
+        Update::filter_callback_query()
+            .branch(cancel_callback())
+            .branch(
+                dptree::filter(|q: CallbackQuery| {
+                    q.data.as_deref().map_or(false, |d| {
+                        d == "status"
+                            || d == "Addmeasurement"
+                            || d == "LastFeed"
+                            || d == "Cancel"
+                            || d == "CreatePlant"
+                    })
                 })
-            })
-            .endpoint(handle_menu_buttons),
-        )
-        .branch(
-            dptree::case![MeasurementDialogue::CreatingPlant(inner_dialogue)]
-                .branch(
+                .endpoint(handle_menu_buttons),
+            )
+            .branch(
+                dptree::case![MeasurementDialogue::CreatingPlant(inner_dialogue)].branch(
                     dptree::case![PlantCreationDialogue::WaitingForMoisture { name }]
                         .endpoint(get_moisture),
                 ),
-        )
-        .branch(
-            dptree::case![MeasurementDialogue::WaitingForPlant].endpoint(receive_plant),
-        )
-        .branch(
-            dptree::case![MeasurementDialogue::WaitingForType { plant_id, weight }]
-                .endpoint(receive_type),
-        )
-        .branch(
-            dptree::case![MeasurementDialogue::WaitingForDate { plant_id, weight, type_ }]
-                .endpoint(recieve_date),
-        ),
-);
+            )
+            .branch(dptree::case![MeasurementDialogue::WaitingForPlant].endpoint(receive_plant))
+            .branch(
+    dptree::case![MeasurementDialogue::WaitingForWeight { plant_id, plant_name }]
+        .endpoint(receive_plant)
+)
+            .branch(
+                dptree::case![MeasurementDialogue::WaitingForType { plant_id, weight }]
+                    .endpoint(receive_type),
+            )
+            .branch(
+                dptree::case![MeasurementDialogue::WaitingForDate {
+                    plant_id,
+                    weight,
+                    type_
+                }]
+                .endpoint(receive_date),
+            ),
+    );
     Dispatcher::builder(bot, handler)
         .dependencies(dependencies)
         .build()

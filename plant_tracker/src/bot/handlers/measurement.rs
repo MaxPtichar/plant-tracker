@@ -25,10 +25,44 @@ use crate::{
 //   WaitingForDate    → expects a callback (date selection)
 //
 // Handler routing:
-//   text msg  + WaitingForWeight → receive_weight
-//   callback  + WaitingForType   → receive_type
-//   callback  + WaitingForDate   → receive_date
+//   callback  + WaitingForPlant              → receive_plant
+//   text msg  + WaitingForWeight             → receive_weight
+//   callback  + WaitingForType  { .. }       → receive_type
+//   callback  + WaitingForDate  { .. }       → receive_date
 // ============================================================
+
+/// **Stage 0 of 3** — selects the target plant from the inline keyboard.
+///
+/// Triggered by: callback query while in `WaitingForPlant`.
+///
+/// On success: advances state to `WaitingForWeight { plant_id }`
+/// and prompts the user to enter weight in grams.
+///
+/// Ignores non-numeric or missing callback data silently.
+pub async fn receive_plant(bot: Bot, q: CallbackQuery, dialogue: MyDialogue) -> HandlerResult {
+    if let Some(data) = q.data {
+
+        let (plant_id, plant_name) = data
+    .split_once(':')
+    .map(|(id, name)| (id.parse::<i64>().unwrap(), name.to_string()))
+    .unwrap();
+
+
+        bot.answer_callback_query(q.id).await?;
+
+        let chat_id = q.message.unwrap().chat().id;
+        bot.send_message(chat_id, format!("☘️ {plant_name}\n\nВведите текущий вес горшка в граммах:"))
+            .reply_markup(back_to())
+            .await?;
+
+        dialogue
+            .update(MeasurementDialogue::WaitingForWeight { plant_id, plant_name })
+            .await?;
+
+        
+    }
+    Ok(())
+}
 
 /// **Stage 1 of 3** — collects the plant's weight in grams.
 ///
@@ -42,7 +76,7 @@ pub async fn receive_weight(
     bot: Bot,
     dialogue: MyDialogue,
     msg: Message,
-    plant_id: i64,
+    (plant_id, plant_name): (i64, String),
 ) -> HandlerResult {
     match msg.text() {
         Some(text) => match text.parse::<f32>() {
@@ -152,21 +186,5 @@ pub async fn receive_date(
         }
     }
 
-    Ok(())
-}
-pub async fn receive_plant(bot: Bot, q: CallbackQuery, dialogue: MyDialogue) -> HandlerResult {
-    if let Some(data) = q.data {
-        let plant_id: i64 = data.parse().unwrap();
-        bot.answer_callback_query(q.id).await?;
-
-        dialogue
-            .update(MeasurementDialogue::WaitingForWeight { plant_id })
-            .await?;
-
-        let chat_id = q.message.unwrap().chat().id;
-        bot.send_message(chat_id, "Введите вес в граммах")
-            .reply_markup(back_to())
-            .await?;
-    }
     Ok(())
 }

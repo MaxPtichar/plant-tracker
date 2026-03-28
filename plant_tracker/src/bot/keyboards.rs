@@ -1,6 +1,6 @@
 use crate::constants::{REGULAR_PLANT, TROPICAL};
 
-use crate::{constants::SUKKULENT, models::Plant as other_plant};
+use crate::{constants::SUKKULENT, models::Plant};
 
 use teloxide::types::{InlineKeyboardButton, InlineKeyboardMarkup};
 
@@ -41,11 +41,11 @@ pub fn get_type_of_moisture() -> InlineKeyboardMarkup {
 
 pub fn main_menu_buttons() -> InlineKeyboardMarkup {
     InlineKeyboardMarkup::new(vec![
-        
-        vec![InlineKeyboardButton::callback("Добавить растение",
-        "CreatePlant",)],
+        vec![InlineKeyboardButton::callback(
+            "Добавить растение",
+            "CreatePlant",
+        )],
         vec![InlineKeyboardButton::callback("Когда поливать?", "status")],
-
         vec![InlineKeyboardButton::callback(
             "Добавить показания",
             "Addmeasurement",
@@ -57,14 +57,14 @@ pub fn main_menu_buttons() -> InlineKeyboardMarkup {
     ])
 }
 
-pub fn plant_keyboard(plants: &[other_plant]) -> InlineKeyboardMarkup {
+pub fn plant_keyboard(plants: &[Plant]) -> InlineKeyboardMarkup {
     InlineKeyboardMarkup::new(
         plants
             .iter()
             .map(|x| {
                 vec![InlineKeyboardButton::callback(
                     x.plants_name.clone(),
-                    x.id.to_string(),
+                    format!("{}:{}", x.id, x.plants_name),
                 )]
             })
             .chain(std::iter::once(vec![InlineKeyboardButton::callback(
