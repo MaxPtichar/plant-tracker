@@ -1,253 +1,66 @@
-use std::default;
+use crate::models::MeasurementType;
 
-use serde::de::value;
-use sqlx::{PgPool, pool};
-use teloxide::dispatching::dialogue::GetChatId;
-use teloxide::prelude::*;
-
-use crate::bot::callbacks::{parse_date, parse_measurement_type};
-use crate::bot::keyboards::{get_type_of_moisture, main_menu_buttons};
-use crate::bot::keyboards::{back_to, date_keyboard, measurement_type_keyboard, plant_keyboard};
-use crate::bot::{HandlerResult, MyDialogue};
-use crate::db_operations;
-use crate::models::MeasurementType as MT;
-use crate::models::Plant;
-
+/// FSM state for the "record measurement" dialogue.
+///
+/// Transitions:
+/// ```text
+/// WaitingForPlant
+///     └─ (callback: plant selected) ──→ WaitingForWeight
+///             └─ (text: float) ────────→ WaitingForType
+///                     └─ (callback: type) ──→ WaitingForDate
+///                             └─ (callback: date) ──→ WaitingForPlant
+/// ```
+///
+/// `CreatingPlant` — nested sub-FSM, entered when the user wants to add
+/// a new plant instead of selecting an existing one.
+/// Returns to `WaitingForPlant` on completion.
 #[derive(Clone, Default)]
 pub enum MeasurementDialogue {
+    /// Entry point. Waiting for the user to select a plant
+    /// from the inline keyboard.
     #[default]
     WaitingForPlant,
+
+    /// User chose to create a new plant instead of selecting existing.
+    /// Delegates to [`PlantCreationDialogue`] sub-FSM.
     CreatingPlant(PlantCreationDialogue),
-    WaitingForWeight {
-        plant_id: i64,
-    },
-    WaitingForType {
-        plant_id: i64,
-        weight: f32,
-    },
+
+    /// Plant selected. Waiting for weight input (grams, float).
+    WaitingForWeight { plant_id: i64 },
+
+    /// Weight collected. Waiting for measurement type selection
+    /// via inline keyboard ([`MeasurementType`]).
+    WaitingForType { plant_id: i64, weight: f32 },
+
+    /// Type collected. Waiting for date selection via inline keyboard.
     WaitingForDate {
         plant_id: i64,
         weight: f32,
-        type_: MT,
+        type_: MeasurementType,
     },
 }
 
-//get weight
-pub async fn receive_weight(
-    bot: Bot,
-    dialogue: MyDialogue,
-    msg: Message,
-    plant_id: i64,
-) -> HandlerResult {
-    match msg.text() {
-        Some(text) => match text.parse::<f32>() {
-            Ok(weight) => {
-                dialogue
-                    .update(MeasurementDialogue::WaitingForType { plant_id, weight })
-                    .await?;
-
-                bot.send_message(msg.chat.id, "Выбери тип измерений: ")
-                    .reply_markup(measurement_type_keyboard())
-                    .await?;
-            }
-
-            Err(_) => {
-                bot.send_message(msg.chat.id, "Введите число").await?;
-            }
-        },
-
-        None => {
-            bot.send_message(msg.chat.id, "Введите вес в граммах")
-                .await?;
-        }
-    }
-
-    Ok(())
-}
-
-pub async fn receive_type(
-    bot: Bot,
-    dialogue: MyDialogue,
-    q: CallbackQuery,
-    (plant_id, weight): (i64, f32),
-) -> HandlerResult {
-    if let Some(data) = q.data {
-        bot.answer_callback_query(q.id).await?;
-
-        if let Some(type_) = parse_measurement_type(&data) {
-            dialogue
-                .update(MeasurementDialogue::WaitingForDate {
-                    plant_id,
-                    weight,
-                    type_,
-                })
-                .await?;
-
-            let chat_id = q.message.unwrap().chat().id;
-            bot.send_message(chat_id, "Выберите дату: ")
-                .reply_markup(date_keyboard())
-                .await?;
-        }
-    }
-    Ok(())
-}
-
-pub async fn recieve_date(
-    bot: Bot,
-    dialogue: MyDialogue,
-    q: CallbackQuery,
-    pool: PgPool,
-    (plant_id, weight, type_): (i64, f32, MT),
-) -> HandlerResult {
-    let chat_id = q.message.unwrap().chat().id;
-
-    if let Some(data) = q.data {
-        bot.answer_callback_query(q.id).await?;
-
-        if let Some(date) = parse_date(&data) {
-            bot.send_message(
-                chat_id,
-                format!(
-                    "Записано: {} г., тип полива: {:?}, дата: {}",
-                    weight, type_, date
-                ),
-            )
-            .await?;
-
-            let plants: Vec<crate::models::Plant> =
-                db_operations::get_user_plants(&pool, chat_id.0).await?;
-
-            // add_new_measurement(&mut plants, plant_id as i64, weight, date, type_);
-            db_operations::create_measurement(&pool, plant_id, weight, date, type_.to_string())
-                .await?;
-            dialogue
-                .update(MeasurementDialogue::WaitingForPlant)
-                .await?;
-            bot.send_message(chat_id, "Выбери растение: ")
-                .reply_markup(plant_keyboard(&plants))
-                .await?;
-        } else {
-            bot.send_message(chat_id, "Неверный формат даты. Попробуйте еще раз")
-                .await?;
-        }
-    }
-
-    Ok(())
-}
-
-// get id plant
-pub async fn receive_plant(bot: Bot, q: CallbackQuery, dialogue: MyDialogue) -> HandlerResult {
-    if let Some(data) = q.data {
-        let plant_id: i64 = data.parse().unwrap();
-        bot.answer_callback_query(q.id).await?;
-
-        dialogue
-            .update(MeasurementDialogue::WaitingForWeight { plant_id })
-            .await?;
-
-        let chat_id = q.message.unwrap().chat().id;
-        bot.send_message(chat_id, "Введите вес в граммах")
-            .reply_markup(back_to())
-            .await?;
-    }
-    Ok(())
-}
-
-/// остановился здесь
-
+/// FSM state for the "add new plant" dialogue.
+///
+/// Transitions:
+/// ```text
+/// WaitingForName
+///     └─ (text: name) ──────────────→ WaitingForMoisture
+///                 ├─ (callback: preset) ──→ [create plant → exit]
+///                 └─ (callback: custom) ──→ WaitingForCustomMoisture
+///                             └─ (text: float 0.0–1.0) ──→ [create plant → exit]
+/// ```
 #[derive(Clone, Default)]
 pub enum PlantCreationDialogue {
+    /// Entry point. Waiting for the plant's display name as a text message.
     #[default]
     WaitingForName,
-    WaitingForMoisture {
-        name: String,
-    },
-    WaitingForCustomMoisture {
-        name: String,
-    },
-}
 
-//нужно написать три обработчика
-//три обаботчка - первый котоырй кнопки обрабатывает - второй текстовый ввод - и третрий который собирает все
-pub async fn get_plant_name(bot: Bot, dialogue: MyDialogue, msg: Message) -> HandlerResult {
-    match msg.text() {
-        Some(plants_name) => {
-            let name = plants_name.to_string();
+    /// Name collected. Waiting for residual moisture threshold
+    /// via inline keyboard — either a preset value or "custom".
+    WaitingForMoisture { name: String },
 
-            dialogue
-                .update(MeasurementDialogue::CreatingPlant(
-                    PlantCreationDialogue::WaitingForMoisture { name },
-                ))
-                .await?;
-            bot.send_message(msg.chat.id, "Введите остаточный % влаги в горшке")
-                .reply_markup(get_type_of_moisture())
-                .await?;
-        }
-        None => {
-            bot.send_message(msg.chat.id, "Растение должно иметь название!")
-                .await?;
-        }
-    }
-
-    Ok(())
-}
-
-pub async fn get_moisture(
-    bot: Bot,
-    dialogue: MyDialogue,
-    q: CallbackQuery,
-    pool: PgPool,
-    name: String,
-) -> HandlerResult {
-    let chat_id = q.message.unwrap().chat().id;
-    if let Some(data) = q.data {
-        if data == "custom" {
-            dialogue
-                .update(MeasurementDialogue::CreatingPlant(
-                    PlantCreationDialogue::WaitingForCustomMoisture { name },
-                ))
-                .await?;
-            bot.send_message(chat_id, "Введите число от 0.1 до 1.0 (например, 0.25):")
-                .await?;
-        } else {
-            let moisture: f32 = data.parse().unwrap_or(0.3);
-
-            db_operations::create_new_plant(&pool, chat_id.0, &name, moisture).await?;
-
-            bot.send_message(chat_id, format!("🌿 Растение '{name}' добавлено!"))
-                .reply_markup(main_menu_buttons())
-                .await?;
-            dialogue.exit().await?;
-        }
-    }
-    bot.answer_callback_query(q.id).await?;
-    Ok(())
-}
-
-pub async fn get_custom_moisture(
-    bot: Bot,
-    dialogue: MyDialogue,
-    msg: Message,
-    pool: PgPool,
-    name: String,
-) -> HandlerResult {
-    if let Some(text) = msg.text() {
-        if let Ok(val) = text.replace(",", ".").parse::<f32>() {
-            if (0.0..=1.0).contains(&val) {
-                db_operations::create_new_plant(&pool, msg.chat.id.0, &name, val).await?;
-                bot.send_message(msg.chat.id, "✅ Сохранено!")
-                .reply_markup(main_menu_buttons())
-                .await?;
-                dialogue.exit().await?;
-            } else {
-                bot.send_message(msg.chat.id, "Введите число от 0 до 1.")
-                    .await?;
-            }
-        }
-    } else {
-        bot.send_message(msg.chat.id, "Попробуйте ввести число.")
-            .await?;
-    }
-
-    Ok(())
+    /// User chose custom moisture. Waiting for a float in range `0.0..=1.0`
+    /// as a text message (commas normalised to dots).
+    WaitingForCustomMoisture { name: String },
 }
