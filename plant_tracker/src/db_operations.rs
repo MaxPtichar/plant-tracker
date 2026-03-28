@@ -1,4 +1,4 @@
-use crate::models::{Measurements, Plant, PotConfig, User};
+use crate::models::{Measurements, Plant, PlantWithLastFeedWatring, PotConfig, User};
 use chrono::NaiveDate;
 use chrono::{DateTime, Utc};
 use sqlx::PgPool;
@@ -28,7 +28,7 @@ pub async fn create_new_plant(
     let result = sqlx::query!(
         "INSERT INTO plants (user_id, plants_name, target_moisture) VALUES ($1, $2, $3) RETURNING id ",
         user_id,
-        plant_name, 
+        plant_name,
         target_moisture
     )
     .fetch_one(pool)
@@ -134,6 +134,27 @@ pub async fn get_last_watering(pool: &PgPool, plant_id: i64) -> sqlx::Result<Opt
         plant_id
     )
     .fetch_optional(pool)
+    .await?;
+
+    Ok(res)
+}
+
+/// returning plants with dates when were last watering with feed
+pub async fn recieve_plants_with_last_feed(
+    pool: &PgPool,
+    chat_id: i64,
+) -> sqlx::Result<Vec<PlantWithLastFeedWatring>> {
+    let res = sqlx::query_as!(
+        PlantWithLastFeedWatring,
+        "SELECT DISTINCT ON (p.id) p.id, p.plants_name, m.date FROM plants p
+        LEFT JOIN measurements m ON (p.id = m.plant_id)
+        AND m.measuring_type = 'AfterWateringWithFeed'
+        WHERE p.user_id = $1
+         
+        ORDER BY p.id, m.date DESC",
+        chat_id
+    )
+    .fetch_all(pool)
     .await?;
 
     Ok(res)
