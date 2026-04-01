@@ -1,7 +1,7 @@
-// mod analytics;
+mod analytics;
 mod bot;
 mod constants;
-// mod operations;
+mod operations;
 
 mod db_operations;
 mod models;
@@ -13,3 +13,6 @@ mod models;
 async fn main() {
     bot::plant_bot().await;
 }
+
+
+// добавить кнопку вывода pot config для каждого растения

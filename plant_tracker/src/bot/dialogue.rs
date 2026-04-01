@@ -14,7 +14,7 @@ use crate::models::MeasurementType;
 /// `CreatingPlant` — nested sub-FSM, entered when the user wants to add
 /// a new plant instead of selecting an existing one.
 /// Returns to `WaitingForPlant` on completion.
-#[derive(Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub enum MeasurementDialogue {
     /// Entry point. Waiting for the user to select a plant
     /// from the inline keyboard.
@@ -26,7 +26,7 @@ pub enum MeasurementDialogue {
     CreatingPlant(PlantCreationDialogue),
 
     /// Plant selected. Waiting for weight input (grams, float).
-    WaitingForWeight { plant_id: i64 },
+    WaitingForWeight { plant_id: i64, plant_name: String, } ,
 
     /// Weight collected. Waiting for measurement type selection
     /// via inline keyboard ([`MeasurementType`]).
@@ -50,7 +50,7 @@ pub enum MeasurementDialogue {
 ///                 └─ (callback: custom) ──→ WaitingForCustomMoisture
 ///                             └─ (text: float 0.0–1.0) ──→ [create plant → exit]
 /// ```
-#[derive(Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub enum PlantCreationDialogue {
     /// Entry point. Waiting for the plant's display name as a text message.
     #[default]
