@@ -1,4 +1,4 @@
-use crate::models::{Measurements, Plant, PlantWithLastFeedWatring, PotConfig, User};
+use crate::models::{Measurements, Plant, PlantWithLastFeedWatering, PotConfig, User};
 use chrono::NaiveDate;
 use chrono::{DateTime, Utc};
 use sqlx::PgPool;
@@ -60,7 +60,7 @@ plant_id, pot_w, dry_w, true)
 }
 
 /// Returns the active pot configuration for a plant.
-pub async fn get_active_config(pool: &PgPool, plant_id: i64) -> sqlx::Result<PotConfig> {
+pub async fn get_active_config(pool: &PgPool, plant_id: i64) -> sqlx::Result<Option<PotConfig>> {
     sqlx::query_as!(
         PotConfig,
         "SELECT id, 
@@ -71,7 +71,7 @@ pub async fn get_active_config(pool: &PgPool, plant_id: i64) -> sqlx::Result<Pot
     FROM pot_configs WHERE plant_id = $1 AND is_active = true",
         plant_id
     )
-    .fetch_one(pool)
+    .fetch_optional(pool)
     .await
 }
 
@@ -139,19 +139,58 @@ pub async fn get_last_watering(pool: &PgPool, plant_id: i64) -> sqlx::Result<Opt
     Ok(res)
 }
 
+
+//get last watering weight with watering status AfterWatering
+pub async fn get_last_watering_weight(pool: &PgPool, plant_id: i64) -> sqlx::Result<Option<f32>> {
+    let res = sqlx::query_scalar!(
+        
+        "SELECT weight FROM measurements
+        WHERE plant_id = $1 AND measuring_type = 'AfterWatering'
+        ORDER BY date DESC LIMIT 1",
+        plant_id
+    )
+    .fetch_optional(pool)
+    .await?;
+
+    Ok(res)
+}
+
+
+
+
+///return two last measurements of weight and date
+pub async fn recieve_two_last_measurement(pool: &PgPool, plant_id: i64) -> sqlx::Result<Vec<Measurements>> {
+    let res = sqlx::query_as!(
+        Measurements,
+        "SELECT id, plant_id, weight, date, measuring_type FROM measurements
+        WHERE plant_id = $1
+        ORDER BY date DESC LIMIT 2",
+        plant_id
+    )
+    .fetch_all(pool)
+    .await?;
+
+    Ok(res)
+}
+
+
+
 /// returning plants with dates when were last watering with feed
 pub async fn recieve_plants_with_last_feed(
     pool: &PgPool,
     chat_id: i64,
-) -> sqlx::Result<Vec<PlantWithLastFeedWatring>> {
+) -> sqlx::Result<Vec<PlantWithLastFeedWatering>> {
     let res = sqlx::query_as!(
-        PlantWithLastFeedWatring,
-        "SELECT DISTINCT ON (p.id) p.id, p.plants_name, m.date FROM plants p
-        LEFT JOIN measurements m ON (p.id = m.plant_id)
-        AND m.measuring_type = 'AfterWateringWithFeed'
-        WHERE p.user_id = $1
-         
-        ORDER BY p.id, m.date DESC",
+        PlantWithLastFeedWatering,
+        "SELECT DISTINCT ON (p.id) 
+    p.id as \"id!\",
+    p.plants_name as \"plants_name!\",
+    m.date as \"date?\"
+FROM plants p
+LEFT JOIN measurements m ON p.id = m.plant_id
+AND m.measuring_type = 'AfterWateringWithFeed'
+WHERE p.user_id = $1
+ORDER BY p.id, m.date DESC",
         chat_id
     )
     .fetch_all(pool)
@@ -174,6 +213,23 @@ pub async fn get_plant_measurements(
     .await?;
     Ok(measrements)
 }
+
+/// Returns target_moisture dependes of plant id
+pub async fn get_plant_target_moisture(
+    pool: &PgPool,
+    plant_id: i64,
+) -> sqlx::Result<f32> {
+    let target_moisture = sqlx::query_scalar!(
+        "SELECT target_moisture FROM plants WHERE id = $1",
+        plant_id
+    )
+    .fetch_one(pool)
+    .await?;
+    Ok(target_moisture)
+}
+
+
+
 
 /// Deletes a plant and all its associated data (cascades to measurements and pot configs).
 pub async fn delete_plant(pool: &PgPool, plant_id: i64) -> sqlx::Result<()> {
