@@ -45,6 +45,10 @@ pub fn main_menu_buttons() -> InlineKeyboardMarkup {
             "Добавить растение",
             "CreatePlant",
         )],
+        vec![InlineKeyboardButton::callback(
+            "Настроить горшок",
+            "CreatePot",
+        )],
         vec![InlineKeyboardButton::callback("Когда поливать?", "status")],
         vec![InlineKeyboardButton::callback(
             "Добавить показания",
