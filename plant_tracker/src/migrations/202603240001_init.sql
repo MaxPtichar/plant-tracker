@@ -1,7 +1,7 @@
-DROP TABLE IF EXISTS pot_configs;
-DROP TABLE IF EXISTS measurements;
-DROP TABLE IF EXISTS plants;
-DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS measurements CASCADE;
+DROP TABLE IF EXISTS pot_configs CASCADE;
+DROP TABLE IF EXISTS plants CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
 
 
 
@@ -23,7 +23,7 @@ CREATE TABLE plants (
 
 CREATE TABLE pot_configs (
     id BIGSERIAL PRIMARY KEY,
-    plant_id BIGINT NOT NULL REFERENCES plants(id),
+    plant_id BIGINT NOT NULL REFERENCES plants(id) ON DELETE CASCADE,
     pot_weight BIGINT NOT NULL ,
     dry_soil_weight BIGINT NOT NULL,
     is_active BOOLEAN NOT NULL DEFAULT TRUE
