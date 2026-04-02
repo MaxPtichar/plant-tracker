@@ -1,29 +1,38 @@
-use crate::bot::user::load_chat_id;
 
+
+use sqlx::PgPool;
 use teloxide::Bot;
 use teloxide::prelude::Requester;
+use teloxide::types::ChatId;
+use crate::bot::commands::get_all_plants_status;
+use crate::db_operations;
 
-pub async fn chat_notification(bot: &Bot) {
-    let Some(chat_id) = load_chat_id() else {
-        return;
+pub async fn chat_notification(bot: &Bot, pool: &PgPool)  {
+    let users = match db_operations::get_all_users(pool).await {
+        Ok(users) => users, 
+        Err(e) => { eprintln!("Failed to get users: {e}"); return; }
+        
     };
-    // let plant = load();
 
-    // let urgent: Vec<String> = plant
-    //     .iter()
-    //     .filter_map(|plant| {
-    //         let days = days_until_watering(plant)?;
-    //         if days <= 2.0 {
-    //             Some(format!("🌱 {}: {}", plant.name, watering_status(days)))
-    //         } else {
-    //             None
-    //         }
-    //     })
-    //     .collect();
 
-    // if !urgent.is_empty() {
-    //     let text = format!("💧 Пора поливать:\n{}", urgent.join("\n"));
-    //     let _ = bot.send_message(chat_id, text).await;
-    // }
-    todo!("sss")
+
+    for user in users {
+        let chat_id = ChatId(user.id);
+
+        let status = match get_all_plants_status(pool, user.id).await {
+            Ok(s) => s,
+            Err(e) => { eprintln!("Failed to get status for {}: {e}", user.id); continue; }
+        };
+        if status.contains("Полив просрочен") 
+    || status.contains("Полить сегодня") 
+    || status.contains("Полить в ближайшие дни") {
+    let _ = bot.send_message(chat_id, format!("💧 Напоминание о поливе:\n{}", status)).await;
 }
+    }
+
+
+    }
+
+   
+
+
