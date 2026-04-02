@@ -21,6 +21,8 @@ pub enum MeasurementDialogue {
     #[default]
     WaitingForPlant,
 
+    CreatingPot(PotCreationDialog),
+
     /// User chose to create a new plant instead of selecting existing.
     /// Delegates to [`PlantCreationDialogue`] sub-FSM.
     CreatingPlant(PlantCreationDialogue),
@@ -64,3 +66,13 @@ pub enum PlantCreationDialogue {
     /// as a text message (commas normalised to dots).
     WaitingForCustomMoisture { name: String },
 }
+
+#[derive(Debug, Clone, Default)]
+pub enum PotCreationDialog {
+    #[default]
+    ChoosePlantName,
+    WaitingForPotWeight {plant_id: i64}, 
+    WaitingForDrySoilWeight {plant_id: i64, pot_weight: i64}
+}
+
+
