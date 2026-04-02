@@ -19,8 +19,10 @@ use teloxide::utils::command::BotCommands;
 
 use crate::bot::callbacks::cancel_callback;
 use crate::bot::commands::{handle_command, handle_menu_buttons};
+use crate::bot::dialogue::PotCreationDialog;
 use crate::bot::handlers::measurement::receive_plant;
 use crate::bot::handlers::plant_creation::{get_custom_moisture, get_moisture, get_plant_name};
+use crate::bot::handlers::pot_creation::{receive_dry_soil_weight, receive_plant_for_pot, recieve_pot_weight};
 use crate::bot::handlers::{receive_date, receive_type, receive_weight};
 use crate::bot::notification::chat_notification;
 use chrono::{Local, Timelike};
@@ -79,7 +81,21 @@ pub async fn plant_bot() {
                         dptree::case![PlantCreationDialogue::WaitingForCustomMoisture { name }]
                             .endpoint(get_custom_moisture),
                     ),
-            ),
+            )
+            .branch(
+    dptree::case![MeasurementDialogue::CreatingPot(inner_dialogue)]
+        .branch(
+            dptree::case![PotCreationDialog::WaitingForPotWeight { plant_id }]
+                .endpoint(recieve_pot_weight),
+        )
+        .branch(
+            dptree::case![PotCreationDialog::WaitingForDrySoilWeight { plant_id, pot_weight }]
+                .endpoint(receive_dry_soil_weight),
+        ),
+)
+            
+
+
     )
     .branch(
         Update::filter_callback_query()
@@ -92,10 +108,19 @@ pub async fn plant_bot() {
                             || d == "LastFeed"
                             || d == "Cancel"
                             || d == "CreatePlant"
+                            || d == "CreatePot"
                     })
                 })
                 .endpoint(handle_menu_buttons),
             )
+
+            .branch(dptree::case![MeasurementDialogue::CreatingPot(inner_dialogue)]
+        .branch(dptree::case![PotCreationDialog::ChoosePlantName].endpoint(receive_plant_for_pot)))       
+
+
+
+            .branch(dptree::case![MeasurementDialogue::CreatingPot(inner_dialogue)]
+        .branch(dptree::case![PotCreationDialog::ChoosePlantName].endpoint(receive_plant_for_pot)))
             .branch(
                 dptree::case![MeasurementDialogue::CreatingPlant(inner_dialogue)].branch(
                     dptree::case![PlantCreationDialogue::WaitingForMoisture { name }]
