@@ -163,7 +163,7 @@ pub async fn recieve_two_last_measurement(pool: &PgPool, plant_id: i64) -> sqlx:
     let res = sqlx::query_as!(
         Measurements,
         "SELECT id, plant_id, weight, date, measuring_type FROM measurements
-        WHERE plant_id = $1
+        WHERE plant_id = $1 AND measuring_type = 'Regular'
         ORDER BY date DESC LIMIT 2",
         plant_id
     )
