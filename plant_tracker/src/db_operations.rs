@@ -123,6 +123,22 @@ pub async fn get_user(pool: &PgPool, tg_id: i64) -> sqlx::Result<Option<User>> {
     Ok(res)
 }
 
+///get all users(chat_id for each user)
+pub async fn get_all_users(pool: &PgPool) -> sqlx::Result<Vec<User>> {
+    let res = sqlx::query_as!(
+        User,
+        "SELECT id, username, created_at FROM users",
+        
+    )
+    .fetch_all(pool)
+    .await?;
+
+    Ok(res)
+}
+
+
+
+
 /// Returns the most recent AfterWatering measurement for a plant.
 /// Returns None if no watering has been recorded yet.
 pub async fn get_last_watering(pool: &PgPool, plant_id: i64) -> sqlx::Result<Option<Measurements>> {
