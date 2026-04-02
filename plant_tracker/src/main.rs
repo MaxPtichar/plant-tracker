@@ -5,9 +5,7 @@ mod operations;
 
 mod db_operations;
 mod models;
-// mod models_old;
 
-// mod storage;
 
 #[tokio::main]
 async fn main() {
@@ -15,4 +13,3 @@ async fn main() {
 }
 
 
-// добавить кнопку вывода pot config для каждого растения

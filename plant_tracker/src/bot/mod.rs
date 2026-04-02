@@ -4,7 +4,7 @@ pub mod dialogue;
 pub mod handlers;
 pub mod keyboards;
 pub mod notification;
-pub mod user;
+
 
 use std::time::Duration;
 
@@ -155,8 +155,8 @@ pub async fn plant_bot() {
 async fn notification_loop(bot_clone: Bot, pool_clone: PgPool) {
     loop {
         let now = Local::now();
-        if now.hour() == 10 && now.minute() == 0 {
-            chat_notification(&bot_clone.clone()).await;
+        if now.hour() == 21 && now.minute() == 18 {
+            chat_notification(&bot_clone,&pool_clone).await;
             tokio::time::sleep(Duration::from_secs(60)).await;
         }
         tokio::time::sleep(Duration::from_secs(30)).await;
