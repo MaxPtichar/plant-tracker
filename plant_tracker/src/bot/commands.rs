@@ -13,12 +13,15 @@ use crate::bot::{HandlerResult, MeasurementDialogue, MyDialogue};
 use crate::db_operations;
 use crate::operations::format_last_feed;
 use crate::models::{WateringStatus, watering_status};
+use crate::bot::dialogue::PotCreationDialog;
 
 #[derive(BotCommands, Clone)]
 #[command(rename_rule = "lowercase")]
 pub enum Command {
     #[command(description = "Главное меню")]
     Start,
+    #[command(description = "Настроить горшок")]
+    CreatePot,
     #[command(description = "Добавить новое растение")]
     CreatePlant,
     #[command(description = "Когда поливать")]
@@ -47,6 +50,21 @@ pub async fn handle_command(
             bot.send_message(msg.chat.id, "Выбери действие: ")
                 .reply_markup(main_menu_buttons())
                 .await?;
+        }
+        Command::CreatePot => {
+            let plants: Vec<crate::models::Plant> =
+                db_operations::get_user_plants(&pool, chat_id_i64).await?;
+                 if plants.is_empty() {
+        bot.send_message(msg.chat.id, format!("Пока еще нет ни одного растения🌱")).await?;
+        dialogue.exit().await?;
+        return Ok(());
+    }
+            dialogue.update(MeasurementDialogue::CreatingPot(PotCreationDialog::ChoosePlantName)).await?;
+            bot.send_message(msg.chat.id, "Выбери растение: ")
+                .reply_markup(plant_keyboard(&plants))
+                .await?;
+            
+
         }
 
         Command::CreatePlant => {
@@ -119,6 +137,20 @@ pub async fn handle_menu_buttons(
                 .reply_markup(main_menu_buttons())
                 .await?;
         }
+
+        Command::CreatePot => {
+            let plants: Vec<crate::models::Plant> =
+                db_operations::get_user_plants(&pool, chat_id_i64).await?;
+                 if plants.is_empty() {
+        bot.send_message(chat_id, format!("Пока еще нет ни одного растения🌱")).await?;
+        dialogue.exit().await?;
+        return Ok(());
+    }
+            dialogue.update(MeasurementDialogue::CreatingPot(PotCreationDialog::ChoosePlantName)).await?;
+            bot.send_message(chat_id, "Выбери растение: ")
+                .reply_markup(plant_keyboard(&plants))
+                .await?;
+}
 
         Command::CreatePlant => {
             dialogue
