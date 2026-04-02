@@ -177,7 +177,7 @@ pub async fn get_all_plants_status(pool: &PgPool, chat_id: i64) -> sqlx::Result<
     let mut result: Vec<String> = Vec::new();
 
     for plant in &plants {
-        let measurements = db_operations::get_plant_measurements(&pool, plant.id).await?;
+        let measurements = db_operations::recieve_two_last_measurement(&pool, plant.id).await?;
         let pot = db_operations::get_active_config(&pool, plant.id).await?;
         let target_moisture= plant.target_moisture;
         let after_watering_weight = db_operations::get_last_watering_weight(&pool, plant.id).await?;
