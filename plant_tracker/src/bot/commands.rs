@@ -6,6 +6,7 @@ use teloxide::utils::command::{self, BotCommands};
 use crate::analytics::days_until_watering;
 
 use crate::bot::handlers::measurement;
+use crate::bot::handlers::measurements_record::receive_plant_for_record;
 use crate::bot::handlers::plants::{get_all_plants_status, get_list_of_all_plants};
 use crate::bot::keyboards::{add_new_plant_button, back_to_my_plants, my_plants_menu};
 use crate::bot::keyboards::{main_menu_buttons, plant_keyboard};
@@ -82,7 +83,7 @@ pub async fn handle_command(
                 .update(MeasurementDialogue::WaitingForPlant)
                 .await?;
             bot.send_message(msg.chat.id, "Выбери растение: ")
-                .reply_markup(plant_keyboard(&plants))
+                .reply_markup(plant_keyboard(&plants, "Start"))
                 .await?;
         }
 
@@ -137,11 +138,29 @@ pub async fn handle_menu_buttons(
         }
 
         "MyMeasurements" => {
-            bot.send_message(chat_id, "TODO").await?;
+            let plants = db_operations::get_user_plants(&pool, chat_id_i64).await?;
+    if plants.is_empty() {
+        bot.send_message(chat_id, "Пока нет растений 🌱").await?;
+        return Ok(());
+    }
+    dialogue.update(MeasurementDialogue::WaitingForPlantRecord).await?;
+    bot.send_message(chat_id, "Выбери растение:")
+        .reply_markup(plant_keyboard(&plants, "MyPlants"))
+        .await?;
         }
 
         "DeletePlant" => {
-            bot.send_message(chat_id, "TODO").await?;
+             let plants = db_operations::get_user_plants(&pool, chat_id_i64).await?;
+    if plants.is_empty() {
+        bot.send_message(chat_id, "Пока нет растений 🌱").await?;
+        return Ok(());
+    
+    }
+    dialogue.update(MeasurementDialogue::WaitingForPlantDelete).await?;
+    bot.send_message(chat_id, "\nВыбери растение, которое хотите удалить:\n")
+        .reply_markup(plant_keyboard(&plants, "MyPlants"))
+        .await?;
+        
         }
 
         "CreatePot" => {
@@ -158,7 +177,7 @@ pub async fn handle_menu_buttons(
                 ))
                 .await?;
             bot.send_message(chat_id, "Выбери растение: ")
-                .reply_markup(plant_keyboard(&plants))
+                .reply_markup(plant_keyboard(&plants, "MyPlants"))
                 .await?;
         }
 
@@ -189,7 +208,7 @@ pub async fn handle_menu_buttons(
                 .update(MeasurementDialogue::WaitingForPlant)
                 .await?;
             bot.send_message(chat_id, "Выбери растение: ")
-                .reply_markup(plant_keyboard(&plants))
+                .reply_markup(plant_keyboard(&plants, "Start"))
                 .await?;
         }
 
