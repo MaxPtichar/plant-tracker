@@ -20,6 +20,7 @@ pub enum MeasurementDialogue {
     /// from the inline keyboard.
     #[default]
     WaitingForPlant,
+    MyPlants,
 
     CreatingPot(PotCreationDialog),
 
@@ -28,11 +29,17 @@ pub enum MeasurementDialogue {
     CreatingPlant(PlantCreationDialogue),
 
     /// Plant selected. Waiting for weight input (grams, float).
-    WaitingForWeight { plant_id: i64, plant_name: String, } ,
+    WaitingForWeight {
+        plant_id: i64,
+        plant_name: String,
+    },
 
     /// Weight collected. Waiting for measurement type selection
     /// via inline keyboard ([`MeasurementType`]).
-    WaitingForType { plant_id: i64, weight: f32 },
+    WaitingForType {
+        plant_id: i64,
+        weight: f32,
+    },
 
     /// Type collected. Waiting for date selection via inline keyboard.
     WaitingForDate {
@@ -71,8 +78,11 @@ pub enum PlantCreationDialogue {
 pub enum PotCreationDialog {
     #[default]
     ChoosePlantName,
-    WaitingForPotWeight {plant_id: i64}, 
-    WaitingForDrySoilWeight {plant_id: i64, pot_weight: i64}
+    WaitingForPotWeight {
+        plant_id: i64,
+    },
+    WaitingForDrySoilWeight {
+        plant_id: i64,
+        pot_weight: i64,
+    },
 }
-
-
