@@ -54,7 +54,6 @@ pub async fn receive_plant(bot: Bot, q: CallbackQuery, dialogue: MyDialogue) -> 
             chat_id,
             format!("☘️ {plant_name}\n\nВведите текущий вес горшка в граммах:"),
         )
-        .reply_markup(back_to())
         .await?;
 
         dialogue
@@ -181,7 +180,7 @@ pub async fn receive_date(
                 .update(MeasurementDialogue::WaitingForPlant)
                 .await?;
             bot.send_message(chat_id, "Выбери растение: ")
-                .reply_markup(plant_keyboard(&plants))
+                .reply_markup(plant_keyboard(&plants, "start"))
                 .await?;
         } else {
             bot.send_message(chat_id, "Неверный формат даты. Попробуйте еще раз")

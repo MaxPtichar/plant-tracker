@@ -120,6 +120,7 @@ pub async fn receive_dry_soil_weight(
                         pot_weight + weight_dry
                     ),
                 )
+                .reply_markup(main_menu_buttons())
                 .await?;
 
                 db_operations::create_pot_config(&pool, plant_id, pot_weight, weight_dry).await?;
