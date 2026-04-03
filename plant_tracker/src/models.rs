@@ -189,3 +189,10 @@ impl fmt::Display for WateringStatus {
     }
 }
 
+pub struct PlantDetails {
+    pub plants_name: String,
+    pub target_moisture: f32,
+    pub pot_weight: i64,
+    pub dry_soil_weight: i64,
+    pub last_measurement_date: Option<NaiveDate>,
+}
