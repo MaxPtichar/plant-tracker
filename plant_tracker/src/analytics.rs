@@ -1,5 +1,8 @@
+use crate::{
+    db_operations,
+    models::{Measurements, PlantWithLastFeedWatering, PotConfig},
+};
 use chrono::NaiveDate;
-use crate::{db_operations, models::{Measurements, PlantWithLastFeedWatering, PotConfig}};
 
 // ============================================================
 // Plant watering analytics
@@ -25,19 +28,18 @@ use crate::{db_operations, models::{Measurements, PlantWithLastFeedWatering, Pot
 /// // weight1=500g on 2026-03-10, weight2=450g on 2026-03-05
 /// // rate = (500 - 450) / 5 = 10.0 g/day
 /// ```
-pub fn avg_evaporation_rate(last_measurements: &[Measurements]) -> Option<f32> { 
+pub fn avg_evaporation_rate(last_measurements: &[Measurements]) -> Option<f32> {
     if last_measurements.len() < 2 {
         return None;
     }
-    
+
     let (weight1, weight2) = (last_measurements[0].weight, last_measurements[1].weight);
     let (date1, date2) = (last_measurements[0].date, last_measurements[1].date);
 
-    let delta_days = (date1 -date2 ).abs().num_days().max(1) as f32;
-    let evapuation_rate = ( weight2  - weight1).abs() / delta_days;
-   
-    Some(evapuation_rate as f32)
+    let delta_days = (date1 - date2).abs().num_days().max(1) as f32;
+    let evapuation_rate = (weight2 - weight1).abs() / delta_days;
 
+    Some(evapuation_rate as f32)
 }
 
 /// Calculates the target weight at which the plant needs watering.
@@ -48,8 +50,8 @@ pub fn avg_evaporation_rate(last_measurements: &[Measurements]) -> Option<f32> {
 /// - `pot` — active pot config from [`db_operations::get_active_config`]
 /// - `target_moisture` — moisture fraction `0.0..=1.0` from [`Plant`]
 /// - `after_watering` — weight recorded after last watering ([`Measurements`])
-fn target_weight(pot: &PotConfig, target_moisture: f32, after_watering: f32 ) -> f32 {
-     let dry_total = pot.pot_weight as f32 + pot.dry_soil_weight as f32;
+fn target_weight(pot: &PotConfig, target_moisture: f32, after_watering: f32) -> f32 {
+    let dry_total = pot.pot_weight as f32 + pot.dry_soil_weight as f32;
     dry_total + (after_watering - dry_total) * target_moisture
 }
 
@@ -98,14 +100,6 @@ pub fn days_from_last_feed(last_feed: &PlantWithLastFeedWatering) -> Option<u32>
 
     Some(days.max(0) as u32)
 }
-
-
-
-
-
-
-
-
 
 #[cfg(test)]
 mod tests {
@@ -189,10 +183,3 @@ mod tests {
         assert_eq!(days_until_watering(&m, &pot, 0.3, 800.0), None);
     }
 }
-
-
-
-
-
-
-

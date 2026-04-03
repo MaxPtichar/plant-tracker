@@ -43,23 +43,26 @@ pub async fn receive_plant(bot: Bot, q: CallbackQuery, dialogue: MyDialogue) -> 
     if let Some(data) = q.data {
 
         let (plant_id, plant_name) = data
-    .split_once(':')
-    .map(|(id, name)| (id.parse::<i64>().unwrap(), name.to_string()))
-    .unwrap();
-
+            .split_once(':')
+            .map(|(id, name)| (id.parse::<i64>().unwrap(), name.to_string()))
+            .unwrap();
 
         bot.answer_callback_query(q.id).await?;
 
         let chat_id = q.message.unwrap().chat().id;
-        bot.send_message(chat_id, format!("☘️ {plant_name}\n\nВведите текущий вес горшка в граммах:"))
-            .reply_markup(back_to())
-            .await?;
+        bot.send_message(
+            chat_id,
+            format!("☘️ {plant_name}\n\nВведите текущий вес горшка в граммах:"),
+        )
+        .reply_markup(back_to())
+        .await?;
 
         dialogue
-            .update(MeasurementDialogue::WaitingForWeight { plant_id, plant_name })
+            .update(MeasurementDialogue::WaitingForWeight {
+                plant_id,
+                plant_name,
+            })
             .await?;
-
-        
     }
     Ok(())
 }
