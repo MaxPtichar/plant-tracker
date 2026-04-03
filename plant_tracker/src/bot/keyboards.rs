@@ -42,22 +42,47 @@ pub fn get_type_of_moisture() -> InlineKeyboardMarkup {
 pub fn main_menu_buttons() -> InlineKeyboardMarkup {
     InlineKeyboardMarkup::new(vec![
         vec![InlineKeyboardButton::callback(
-            "Добавить растение",
-            "CreatePlant",
+            "🌿 Мои растения",
+            "MyPlants",
         )],
         vec![InlineKeyboardButton::callback(
-            "Настроить горшок",
-            "CreatePot",
+            "💧 Когда поливать?",
+            "status",
         )],
-        vec![InlineKeyboardButton::callback("Когда поливать?", "status")],
         vec![InlineKeyboardButton::callback(
-            "Добавить показания",
+            "📖 Добавить показания",
             "Addmeasurement",
         )],
         vec![InlineKeyboardButton::callback(
-            "Последняя прикормка",
+            "🧪 Последняя прикормка",
             "LastFeed",
         )],
+    ])
+}
+
+pub fn my_plants_menu() -> InlineKeyboardMarkup {
+    InlineKeyboardMarkup::new(vec![
+        vec![InlineKeyboardButton::callback(
+            "🌿 Показать мои растения",
+            "PlantList",
+        )],
+        vec![InlineKeyboardButton::callback(
+            "📖 Показать мои измерения",
+            "MyMeasurements",
+        )],
+        vec![InlineKeyboardButton::callback(
+            "➕ Добавить растение",
+            "CreatePlant",
+        )],
+        vec![InlineKeyboardButton::callback(
+            "🪴 Настроить горшок",
+            "CreatePot",
+        )],
+        vec![InlineKeyboardButton::callback(
+            "🪏 Удалить растение",
+            "DeletePlant",
+        )],
+        vec![InlineKeyboardButton::callback("↩︎ Назад", "Start")],
     ])
 }
 
@@ -105,4 +130,11 @@ pub fn date_keyboard() -> InlineKeyboardMarkup {
             "your_date",
         )],
     ])
+}
+
+pub fn back_to_my_plants() -> InlineKeyboardMarkup {
+    InlineKeyboardMarkup::new(vec![vec![InlineKeyboardButton::callback(
+        "↩︎  Назад",
+        "MyPlants",
+    )]])
 }
