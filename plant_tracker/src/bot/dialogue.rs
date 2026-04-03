@@ -1,5 +1,3 @@
-use teloxide::types::ChatId;
-
 use crate::models::MeasurementType;
 
 /// FSM state for the "record measurement" dialogue.
@@ -24,11 +22,10 @@ pub enum MeasurementDialogue {
     WaitingForPlant,
     MyPlants,
     WaitingForPlantRecord,
-    WaitingForPlantDelete, 
+    WaitingForPlantDelete,
     WaitingForConfirmDelete {
         plant_id: i64,
     },
-
 
     CreatingPot(PotCreationDialog),
 

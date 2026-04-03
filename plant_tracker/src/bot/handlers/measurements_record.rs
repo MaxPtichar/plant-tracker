@@ -2,10 +2,7 @@ use sqlx::PgPool;
 use teloxide::prelude::*;
 
 use crate::{
-    bot::{
-        HandlerResult, MeasurementDialogue, MyDialogue, PlantCreationDialogue,
-        keyboards::{back_to_my_plants, get_type_of_moisture, main_menu_buttons},
-    },
+    bot::{HandlerResult, MyDialogue, keyboards::back_to_my_plants},
     db_operations,
 };
 
@@ -61,14 +58,7 @@ pub async fn get_list_of_measurements_20(
 
     let result = measurements
         .iter()
-        .map(|m| {
-            format!(
-                "⚖️ {} г  📅 {}  🔬 {}",
-                m.weight,
-                m.date,
-                m.measuring_type,
-            )
-        })
+        .map(|m| format!("⚖️ {} г  📅 {}  🔬 {}", m.weight, m.date, m.measuring_type,))
         .collect::<Vec<_>>()
         .join("\n");
 

@@ -1,12 +1,5 @@
-use std::fmt::format;
-
-// use crate::analytics::{days_until_watering, get_avg_r, last_plant_feed};
-
 use crate::analytics::days_from_last_feed;
-use crate::db_operations;
-use crate::models::{Measurements, Plant, PlantWithLastFeedWatering};
-
-use chrono::NaiveDate;
+use crate::models::PlantWithLastFeedWatering;
 
 /// Formats a list of plants with their last feed-watering date.
 ///

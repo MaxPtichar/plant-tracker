@@ -3,8 +3,8 @@ use teloxide::prelude::*;
 
 use crate::{
     bot::{
-        HandlerResult, MeasurementDialogue, MyDialogue, PlantCreationDialogue,
-        keyboards::{back_to, get_type_of_moisture, main_menu_buttons},
+        HandlerResult, MeasurementDialogue, MyDialogue,
+        keyboards::{back_to, main_menu_buttons},
     },
     db_operations,
 };

@@ -11,7 +11,6 @@ pub use commands::Command;
 pub use dialogue::{MeasurementDialogue, PlantCreationDialogue};
 
 use dotenvy::dotenv;
-use sqlx::pool;
 use teloxide::dispatching::Dispatcher;
 use teloxide::dispatching::dialogue::{self as tg_dialogue, InMemStorage};
 use teloxide::utils::command::BotCommands;
@@ -120,23 +119,28 @@ pub async fn plant_bot() {
                             || d == "CreatePlant"
                             || d == "CreatePot"
                             || d == "Start"
-                           
-                            
                     })
                 })
                 .endpoint(handle_menu_buttons),
             )
-            .branch(dptree::case![MeasurementDialogue::WaitingForPlantDelete].endpoint(receive_plant_for_delete))
-                .branch(dptree::case![MeasurementDialogue::WaitingForConfirmDelete { plant_id }].endpoint(receive_answer))
-            
+            .branch(
+                dptree::case![MeasurementDialogue::WaitingForPlantDelete]
+                    .endpoint(receive_plant_for_delete),
+            )
+            .branch(
+                dptree::case![MeasurementDialogue::WaitingForConfirmDelete { plant_id }]
+                    .endpoint(receive_answer),
+            )
             .branch(
                 dptree::case![MeasurementDialogue::CreatingPot(inner_dialogue)].branch(
                     dptree::case![PotCreationDialog::ChoosePlantName]
                         .endpoint(receive_plant_for_pot),
                 ),
             )
-            .branch(dptree::case![MeasurementDialogue::WaitingForPlantRecord]
-    .endpoint(receive_plant_for_record))
+            .branch(
+                dptree::case![MeasurementDialogue::WaitingForPlantRecord]
+                    .endpoint(receive_plant_for_record),
+            )
             .branch(
                 dptree::case![MeasurementDialogue::CreatingPot(inner_dialogue)].branch(
                     dptree::case![PotCreationDialog::ChoosePlantName]
@@ -149,7 +153,6 @@ pub async fn plant_bot() {
                         .endpoint(get_moisture),
                 ),
             )
-
             .branch(dptree::case![MeasurementDialogue::WaitingForPlant].endpoint(receive_plant))
             .branch(
                 dptree::case![MeasurementDialogue::WaitingForWeight {
@@ -181,7 +184,7 @@ pub async fn plant_bot() {
 async fn notification_loop(bot_clone: Bot, pool_clone: PgPool) {
     loop {
         let now = Local::now();
-        if now.hour() == 21 && now.minute() == 36 {
+        if now.hour() == 9 && now.minute() == 00 {
             chat_notification(&bot_clone, &pool_clone).await;
             tokio::time::sleep(Duration::from_secs(60)).await;
         }

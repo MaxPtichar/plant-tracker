@@ -197,7 +197,7 @@ pub struct PlantDetails {
     pub last_measurement_date: Option<NaiveDate>,
 }
 
-pub struct PlantMeasurementsHistory{
+pub struct PlantMeasurementsHistory {
     pub plants_name: String,
     pub weight: f32,
     pub date: NaiveDate,

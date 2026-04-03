@@ -1,8 +1,8 @@
 use crate::models::{
-    Measurements, Plant, PlantDetails, PlantMeasurementsHistory, PlantWithLastFeedWatering, PotConfig, User
+    Measurements, Plant, PlantDetails, PlantMeasurementsHistory, PlantWithLastFeedWatering,
+    PotConfig, User,
 };
 use chrono::NaiveDate;
-use chrono::{DateTime, Utc};
 use sqlx::PgPool;
 
 /// Registers a user by their Telegram ID.
@@ -283,16 +283,22 @@ GROUP BY p.id, p.plants_name, p.target_moisture, pot.pot_weight, pot.dry_soil_we
     .await
 }
 
-
-pub  async fn get_measurement_record_20(pool: &PgPool, plant_id: i64, chat_id: i64) -> sqlx::Result<Vec<PlantMeasurementsHistory>> {
-
-sqlx::query_as!(PlantMeasurementsHistory, "SELECT p.plants_name, m.weight, m.date, m.measuring_type 
+pub async fn get_measurement_record_20(
+    pool: &PgPool,
+    plant_id: i64,
+    chat_id: i64,
+) -> sqlx::Result<Vec<PlantMeasurementsHistory>> {
+    sqlx::query_as!(
+        PlantMeasurementsHistory,
+        "SELECT p.plants_name, m.weight, m.date, m.measuring_type 
 FROM measurements m
 LEFT JOIN plants p ON p.id = m.plant_id
 WHERE p.id = $1 AND p.user_id = $2
 ORDER BY m.date DESC
-LIMIT 20;", plant_id, chat_id)
-.fetch_all(pool)
-.await
-
+LIMIT 20;",
+        plant_id,
+        chat_id
+    )
+    .fetch_all(pool)
+    .await
 }

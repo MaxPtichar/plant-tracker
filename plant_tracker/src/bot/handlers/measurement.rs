@@ -1,7 +1,6 @@
 use sqlx::PgPool;
 use teloxide::prelude::*;
 
-use crate::bot::keyboards::back_to;
 use crate::models::MeasurementType;
 use crate::{
     bot::{
@@ -41,7 +40,6 @@ use crate::{
 /// Ignores non-numeric or missing callback data silently.
 pub async fn receive_plant(bot: Bot, q: CallbackQuery, dialogue: MyDialogue) -> HandlerResult {
     if let Some(data) = q.data {
-
         let (plant_id, plant_name) = data
             .split_once(':')
             .map(|(id, name)| (id.parse::<i64>().unwrap(), name.to_string()))

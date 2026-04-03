@@ -1,8 +1,4 @@
-use crate::{
-    db_operations,
-    models::{Measurements, PlantWithLastFeedWatering, PotConfig},
-};
-use chrono::NaiveDate;
+use crate::models::{Measurements, PlantWithLastFeedWatering, PotConfig};
 
 // ============================================================
 // Plant watering analytics
