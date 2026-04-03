@@ -11,6 +11,10 @@ use crate::bot::{HandlerResult, MeasurementDialogue, MyDialogue};
 use crate::db_operations;
 use crate::operations::format_last_feed;
 
+/// Bot commands available via `/` in Telegram.
+///
+/// Callback-only actions (`CreatePot`, `CreatePlant`, etc.) are handled
+/// separately in [`handle_menu_buttons`] and are not exposed as commands.
 #[derive(BotCommands, Clone)]
 #[command(rename_rule = "lowercase")]
 pub enum Command {
@@ -27,6 +31,9 @@ pub enum Command {
     #[command(description = "Отменить действие")]
     Cancel,
 }
+
+/// Callback-only actions triggered via inline keyboard buttons.
+/// Not registered as Telegram bot commands.
 pub enum CallbackCommand {
     MyMeasurements,
     CreatePot,
@@ -35,6 +42,15 @@ pub enum CallbackCommand {
     DeletePlant,
 }
 
+/// Handles bot commands sent via `/command` syntax.
+///
+/// # Commands
+/// - `/start` — registers the user and shows the main menu
+/// - `/myplants` — shows the "My Plants" submenu
+/// - `/status` — shows watering status for all plants
+/// - `/addmeasurement` — starts the measurement recording dialogue
+/// - `/lastfeed` — shows the last fertilizer application date per plant
+/// - `/cancel` — exits the current dialogue
 pub async fn handle_command(
     bot: Bot,
     msg: Message,
@@ -95,6 +111,21 @@ pub async fn handle_command(
     Ok(())
 }
 
+
+/// Handles inline keyboard button presses from the main and submenu screens.
+///
+/// Matches `q.data` string directly against known callback values:
+/// - `"Start"` — main menu
+/// - `"MyPlants"` — my plants submenu
+/// - `"PlantList"` — list of all plants with details
+/// - `"MyMeasurements"` — measurement history, starts plant selection dialogue
+/// - `"DeletePlant"` — delete plant, starts plant selection dialogue
+/// - `"CreatePot"` — pot configuration, starts pot creation dialogue
+/// - `"CreatePlant"` — starts plant creation dialogue
+/// - `"status"` — watering status for all plants
+/// - `"Addmeasurement"` — starts measurement recording dialogue
+/// - `"LastFeed"` — last fertilizer application date
+/// - `"Cancel"` — exits the current dialogue
 pub async fn handle_menu_buttons(
     bot: Bot,
     q: CallbackQuery,

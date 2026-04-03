@@ -2,7 +2,7 @@ use sqlx::PgPool;
 use teloxide::prelude::*;
 
 use crate::{
-    bot::{HandlerResult, MyDialogue, keyboards::back_to_my_plants},
+    bot::{HandlerResult, MeasurementDialogue, MyDialogue, keyboards::back_to_my_plants},
     db_operations,
 };
 
@@ -35,7 +35,7 @@ pub async fn receive_plant_for_record(
         .reply_markup(back_to_my_plants())
         .await?;
 
-        dialogue.exit().await?;
+        dialogue.update(MeasurementDialogue::WaitingForPlantRecord).await?;
     }
     Ok(())
 }

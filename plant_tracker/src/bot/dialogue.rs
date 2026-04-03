@@ -1,5 +1,4 @@
 use crate::models::MeasurementType;
-
 /// FSM state for the "record measurement" dialogue.
 ///
 /// Transitions:
@@ -8,12 +7,14 @@ use crate::models::MeasurementType;
 ///     └─ (callback: plant selected) ──→ WaitingForWeight
 ///             └─ (text: float) ────────→ WaitingForType
 ///                     └─ (callback: type) ──→ WaitingForDate
-///                             └─ (callback: date) ──→ WaitingForPlant
+///                             └─ (callback: date) ──→ [save → exit]
 /// ```
 ///
-/// `CreatingPlant` — nested sub-FSM, entered when the user wants to add
-/// a new plant instead of selecting an existing one.
-/// Returns to `WaitingForPlant` on completion.
+/// Side dialogues entered from the main menu:
+/// - `CreatingPlant` — add a new plant (sub-FSM)
+/// - `CreatingPot` — configure pot for an existing plant (sub-FSM)
+/// - `WaitingForPlantRecord` — view measurement history
+/// - `WaitingForPlantDelete` / `WaitingForConfirmDelete` — delete a plant
 #[derive(Debug, Clone, Default)]
 pub enum MeasurementDialogue {
     /// Entry point. Waiting for the user to select a plant
@@ -21,12 +22,19 @@ pub enum MeasurementDialogue {
     #[default]
     WaitingForPlant,
     MyPlants,
+
+    /// Waiting for the user to select a plant to view measurement history.
     WaitingForPlantRecord,
+
+    /// Waiting for the user to select a plant to delete.
     WaitingForPlantDelete,
+
+    /// Plant selected for deletion. Waiting for confirmation (`"ConfirmDelete"` or `"MyPlants"`).
     WaitingForConfirmDelete {
         plant_id: i64,
     },
 
+    /// Pot configuration sub-FSM. See [`PotCreationDialog`].
     CreatingPot(PotCreationDialog),
 
     /// User chose to create a new plant instead of selecting existing.
@@ -79,13 +87,29 @@ pub enum PlantCreationDialogue {
     WaitingForCustomMoisture { name: String },
 }
 
+
+
+/// FSM state for the "configure pot" dialogue.
+///
+/// Transitions:
+/// ```text
+/// ChoosePlantName
+///     └─ (callback: plant selected) ──→ WaitingForPotWeight
+///             └─ (text: integer) ──────→ WaitingForDrySoilWeight
+///                     └─ (text: integer) ──→ [save config → exit]
+/// ```
 #[derive(Debug, Clone, Default)]
 pub enum PotCreationDialog {
+    /// Entry point. Waiting for plant selection via inline keyboard.
     #[default]
     ChoosePlantName,
+    
+     /// Plant selected. Waiting for empty pot weight input (grams, integer).
     WaitingForPotWeight {
         plant_id: i64,
     },
+
+    /// Pot weight collected. Waiting for dry soil weight input (grams, integer).
     WaitingForDrySoilWeight {
         plant_id: i64,
         pot_weight: i64,

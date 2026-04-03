@@ -2,8 +2,18 @@ use sqlx::PgPool;
 
 use crate::{analytics::days_until_watering, db_operations, models::watering_status};
 
-///get status for all plants
-/// status answer an question: wheh is should watering plants? it is returning days untill watering
+/// Returns a formatted watering status string for all user's plants.
+///
+/// For each plant, calculates days until next watering based on:
+/// - last 2 `Regular` measurements (evaporation rate)
+/// - active pot configuration
+/// - last `AfterWatering` measurement weight
+///
+/// # Returns
+/// - One line per plant: `"🌱 {name} — {status}"`
+/// - `"нет данных"` if fewer than 2 measurements available
+/// - `"не настроено"` if no active pot config or no watering recorded
+/// - `"Пока еще нет ни одного растения🌱"` if user has no plants
 pub async fn get_all_plants_status(pool: &PgPool, chat_id: i64) -> sqlx::Result<String> {
     let plants = db_operations::get_user_plants(&pool, chat_id).await?;
     if plants.is_empty() {
@@ -42,6 +52,17 @@ pub async fn get_all_plants_status(pool: &PgPool, chat_id: i64) -> sqlx::Result<
     Ok(result.join("\n"))
 }
 
+/// Returns a formatted list of all user's plants with their configuration details.
+///
+/// Each entry includes:
+/// - plant name
+/// - target moisture percentage
+/// - pot weight and dry soil weight
+/// - date of last measurement (any type), or `"Нет данных"` if none
+///
+/// # Returns
+/// - Entries separated by `"─────────────"`
+/// - `"Пока еще нет ни одного растения🌱"` if user has no plants
 pub async fn get_list_of_all_plants(pool: &PgPool, chat_id: i64) -> sqlx::Result<String> {
     let plants = db_operations::get_list_of_all_user_plants(pool, chat_id).await?;
     if plants.is_empty() {

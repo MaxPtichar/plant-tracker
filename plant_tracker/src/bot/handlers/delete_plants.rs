@@ -8,6 +8,11 @@ use crate::{
     db_operations,
 };
 
+/// Handles plant selection for deletion.
+///
+/// Parses `plant_id` and `plant_name` from callback data (`"id:name"`),
+/// asks the user to confirm deletion via inline keyboard,
+/// and transitions the dialogue to [`MeasurementDialogue::WaitingForConfirmDelete`].
 pub async fn receive_plant_for_delete(
     bot: Bot,
     q: CallbackQuery,
@@ -35,6 +40,15 @@ pub async fn receive_plant_for_delete(
     Ok(())
 }
 
+/// Handles the user's confirmation or cancellation of plant deletion.
+///
+/// Called when the dialogue is in [`MeasurementDialogue::WaitingForConfirmDelete`].
+///
+/// # Transitions
+/// - `"ConfirmDelete"` — deletes the plant from the database, exits the dialogue
+/// - `"MyPlants"` — cancels deletion, exits the dialogue
+///
+/// After both actions returns the user to the "My Plants" menu.
 pub async fn receive_answer(
     bot: Bot,
     dialogue: MyDialogue,

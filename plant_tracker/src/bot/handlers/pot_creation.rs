@@ -10,6 +10,12 @@ use crate::{
 };
 
 use crate::bot::dialogue::PotCreationDialog;
+
+/// Handles plant selection for pot configuration.
+///
+/// Parses `plant_id` and `plant_name` from callback data (`"id:name"`),
+/// asks the user to enter the empty pot weight in grams,
+/// and transitions to [`PotCreationDialog::WaitingForPotWeight`].
 pub async fn receive_plant_for_pot(
     bot: Bot,
     q: CallbackQuery,
@@ -40,6 +46,13 @@ pub async fn receive_plant_for_pot(
     Ok(())
 }
 
+/// Handles empty pot weight input.
+///
+/// Expects a text message with an integer weight in grams.
+/// On success transitions to [`PotCreationDialog::WaitingForDrySoilWeight`].
+/// On invalid input asks the user to retry.
+///
+/// Called when the dialogue is in [`PotCreationDialog::WaitingForPotWeight`].
 pub async fn recieve_pot_weight(
     bot: Bot,
     msg: Message,
@@ -87,6 +100,16 @@ pub async fn recieve_pot_weight(
     Ok(())
 }
 
+/// Handles dry soil weight input and saves the pot configuration.
+///
+/// Expects a text message with an integer weight in grams.
+/// On success:
+/// - saves the pot config via [`db_operations::create_pot_config`]
+///   (deactivates previous config automatically)
+/// - shows a summary with pot weight, dry soil weight and total dry weight
+/// - exits the dialogue
+///
+/// Called when the dialogue is in [`PotCreationDialog::WaitingForDrySoilWeight`].
 pub async fn receive_dry_soil_weight(
     bot: Bot,
     dialogue: MyDialogue,

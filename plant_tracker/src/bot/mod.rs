@@ -36,6 +36,31 @@ use sqlx::postgres::PgPoolOptions;
 pub type MyDialogue = Dialogue<MeasurementDialogue, InMemStorage<MeasurementDialogue>>;
 pub type HandlerResult = Result<(), Box<dyn std::error::Error + Send + Sync>>;
 
+
+/// Entry point of the bot. Initialises the database pool, starts the
+/// notification loop, registers bot commands and launches the dispatcher.
+///
+/// # Handler tree
+///
+/// ## Messages
+/// - `/command` → [`handle_command`]
+/// - `WaitingForWeight` → [`receive_weight`]
+/// - `CreatingPlant / WaitingForName` → [`get_plant_name`]
+/// - `CreatingPlant / WaitingForCustomMoisture` → [`get_custom_moisture`]
+/// - `CreatingPot / WaitingForPotWeight` → [`recieve_pot_weight`]
+/// - `CreatingPot / WaitingForDrySoilWeight` → [`receive_dry_soil_weight`]
+///
+/// ## Callbacks
+/// - `cancel_action` → [`cancel_callback`]
+/// - menu buttons → [`handle_menu_buttons`]
+/// - `WaitingForPlantDelete` → [`receive_plant_for_delete`]
+/// - `WaitingForConfirmDelete` → [`receive_answer`]
+/// - `CreatingPot / ChoosePlantName` → [`receive_plant_for_pot`]
+/// - `WaitingForPlantRecord` → [`receive_plant_for_record`]
+/// - `CreatingPlant / WaitingForMoisture` → [`get_moisture`]
+/// - `WaitingForPlant` → [`receive_plant`]
+/// - `WaitingForType` → [`receive_type`]
+/// - `WaitingForDate` → [`receive_date`]
 pub async fn plant_bot() {
     dotenv().ok();
 
@@ -132,12 +157,6 @@ pub async fn plant_bot() {
                     .endpoint(receive_answer),
             )
             .branch(
-                dptree::case![MeasurementDialogue::CreatingPot(inner_dialogue)].branch(
-                    dptree::case![PotCreationDialog::ChoosePlantName]
-                        .endpoint(receive_plant_for_pot),
-                ),
-            )
-            .branch(
                 dptree::case![MeasurementDialogue::WaitingForPlantRecord]
                     .endpoint(receive_plant_for_record),
             )
@@ -181,6 +200,9 @@ pub async fn plant_bot() {
         .await;
 }
 
+
+/// Sends morning watering reminders to all users at 09:00.
+/// Checks every 30 seconds, sleeps 60 seconds after sending to avoid double-send.
 async fn notification_loop(bot_clone: Bot, pool_clone: PgPool) {
     loop {
         let now = Local::now();

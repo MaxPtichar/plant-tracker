@@ -4,6 +4,8 @@ use crate::{constants::SUKKULENT, models::Plant};
 
 use teloxide::types::{InlineKeyboardButton, InlineKeyboardMarkup};
 
+/// Returns a keyboard with a single "Back to main menu" button.
+/// Used as a fallback navigation in most dialogues.
 pub fn back_to() -> InlineKeyboardMarkup {
     InlineKeyboardMarkup::new(vec![vec![InlineKeyboardButton::callback(
         "🏠 В главное меню",
@@ -11,13 +13,9 @@ pub fn back_to() -> InlineKeyboardMarkup {
     )]])
 }
 
-pub fn add_new_plant_button() -> InlineKeyboardMarkup {
-    InlineKeyboardMarkup::new(vec![vec![InlineKeyboardButton::callback(
-        "Добавить растение",
-        "CreatePlant",
-    )]])
-}
-
+/// Returns a keyboard for selecting target moisture level.
+///
+/// Options: Succulent (15%), Tropical (40%), Regular (30%), or custom input.
 pub fn get_type_of_moisture() -> InlineKeyboardMarkup {
     InlineKeyboardMarkup::new(vec![
         vec![InlineKeyboardButton::callback(
@@ -39,6 +37,7 @@ pub fn get_type_of_moisture() -> InlineKeyboardMarkup {
     ])
 }
 
+/// Returns the main menu inline keyboard.
 pub fn main_menu_buttons() -> InlineKeyboardMarkup {
     InlineKeyboardMarkup::new(vec![
         vec![InlineKeyboardButton::callback(
@@ -60,6 +59,7 @@ pub fn main_menu_buttons() -> InlineKeyboardMarkup {
     ])
 }
 
+/// Returns the "My Plants" submenu inline keyboard.
 pub fn my_plants_menu() -> InlineKeyboardMarkup {
     InlineKeyboardMarkup::new(vec![
         vec![InlineKeyboardButton::callback(
@@ -86,6 +86,10 @@ pub fn my_plants_menu() -> InlineKeyboardMarkup {
     ])
 }
 
+/// Returns an inline keyboard with one button per plant.
+///
+/// Each button's callback data is `"plant_id:plant_name"`.
+/// A "Back" button is appended at the bottom with the given `back_to` callback.
 pub fn plant_keyboard(plants: &[Plant], back_to: &str) -> InlineKeyboardMarkup {
     InlineKeyboardMarkup::new(
         plants
@@ -104,6 +108,7 @@ pub fn plant_keyboard(plants: &[Plant], back_to: &str) -> InlineKeyboardMarkup {
     )
 }
 
+/// Returns a keyboard for selecting measurement type.
 pub fn measurement_type_keyboard() -> InlineKeyboardMarkup {
     InlineKeyboardMarkup::new(vec![
         vec![InlineKeyboardButton::callback(
@@ -121,6 +126,9 @@ pub fn measurement_type_keyboard() -> InlineKeyboardMarkup {
     ])
 }
 
+/// Returns a keyboard for selecting measurement date.
+///
+/// Options: today, yesterday, or custom date input.
 pub fn date_keyboard() -> InlineKeyboardMarkup {
     InlineKeyboardMarkup::new(vec![
         vec![InlineKeyboardButton::callback("Сегодня", "today")],
@@ -132,6 +140,7 @@ pub fn date_keyboard() -> InlineKeyboardMarkup {
     ])
 }
 
+/// Returns a single "Back to My Plants" button.
 pub fn back_to_my_plants() -> InlineKeyboardMarkup {
     InlineKeyboardMarkup::new(vec![vec![InlineKeyboardButton::callback(
         "↩︎  Назад",
@@ -139,6 +148,9 @@ pub fn back_to_my_plants() -> InlineKeyboardMarkup {
     )]])
 }
 
+/// Returns a confirmation keyboard for plant deletion.
+///
+/// Options: confirm deletion or cancel (returns to "My Plants").
 pub fn confrim_delete() -> InlineKeyboardMarkup {
     InlineKeyboardMarkup::new(vec![vec![
         InlineKeyboardButton::callback("✅ Да", "ConfirmDelete"),

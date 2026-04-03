@@ -125,7 +125,8 @@ pub async fn get_user(pool: &PgPool, tg_id: i64) -> sqlx::Result<Option<User>> {
     Ok(res)
 }
 
-///get all users(chat_id for each user)
+/// Returns all registered users.
+/// Used by the notification system to iterate over all chat IDs.
 pub async fn get_all_users(pool: &PgPool) -> sqlx::Result<Vec<User>> {
     let res = sqlx::query_as!(User, "SELECT id, username, created_at FROM users",)
         .fetch_all(pool)
@@ -150,7 +151,9 @@ pub async fn get_last_watering(pool: &PgPool, plant_id: i64) -> sqlx::Result<Opt
     Ok(res)
 }
 
-//get last watering weight with watering status AfterWatering
+/// Returns the weight of the most recent `AfterWatering` measurement for a plant.
+/// Used as the `after_watering_weight` parameter in watering calculations.
+/// Returns `None` if no watering has been recorded yet.
 pub async fn get_last_watering_weight(pool: &PgPool, plant_id: i64) -> sqlx::Result<Option<f32>> {
     let res = sqlx::query_scalar!(
         "SELECT weight FROM measurements
@@ -164,7 +167,8 @@ pub async fn get_last_watering_weight(pool: &PgPool, plant_id: i64) -> sqlx::Res
     Ok(res)
 }
 
-///return two last measurements of weight and date
+/// Returns the last 2 `Regular` measurements for a plant, newest first.
+/// Used as input for evaporation rate calculation in [`analytics::avg_evaporation_rate`].
 pub async fn recieve_two_last_measurement(
     pool: &PgPool,
     plant_id: i64,
@@ -206,29 +210,6 @@ ORDER BY p.id, m.date DESC",
     Ok(res)
 }
 
-/// Returns all measurements for a plant ordered by date.
-pub async fn get_plant_measurements(
-    pool: &PgPool,
-    plant_id: i64,
-) -> sqlx::Result<Vec<Measurements>> {
-    let measrements = sqlx::query_as!(
-        Measurements,
-        "SELECT id, plant_id,  weight, date, measuring_type FROM measurements WHERE plant_id = $1",
-        plant_id
-    )
-    .fetch_all(pool)
-    .await?;
-    Ok(measrements)
-}
-
-/// Returns target_moisture dependes of plant id
-pub async fn get_plant_target_moisture(pool: &PgPool, plant_id: i64) -> sqlx::Result<f32> {
-    let target_moisture =
-        sqlx::query_scalar!("SELECT target_moisture FROM plants WHERE id = $1", plant_id)
-            .fetch_one(pool)
-            .await?;
-    Ok(target_moisture)
-}
 
 /// Deletes a plant and all its associated data (cascades to measurements and pot configs).
 pub async fn delete_plant(pool: &PgPool, plant_id: i64) -> sqlx::Result<()> {
@@ -265,6 +246,9 @@ pub async fn delete_last_measurement(pool: &PgPool, plant_id: i64) -> sqlx::Resu
     Ok(())
 }
 
+
+/// Returns plant details with active pot config and last measurement date for all user's plants.
+/// Used by [`get_list_of_all_plants`] to render the plant list screen.
 pub async fn get_list_of_all_user_plants(
     pool: &PgPool,
     chat_id: i64,
@@ -283,6 +267,10 @@ GROUP BY p.id, p.plants_name, p.target_moisture, pot.pot_weight, pot.dry_soil_we
     .await
 }
 
+
+
+/// Returns the last 20 measurements for a plant, newest first.
+/// Filters by both `plant_id` and `chat_id` to prevent access to another user's data.
 pub async fn get_measurement_record_20(
     pool: &PgPool,
     plant_id: i64,
