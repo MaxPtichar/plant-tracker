@@ -3,8 +3,7 @@ use teloxide::prelude::*;
 
 use crate::{
     bot::{
-        HandlerResult, MeasurementDialogue, MyDialogue, PlantCreationDialogue,
-        keyboards::{get_type_of_moisture, main_menu_buttons},
+        HandlerResult, MeasurementDialogue, MyDialogue, PlantCreationDialogue, dialogue::PotCreationDialog, keyboards::{get_type_of_moisture, main_menu_buttons}
     },
     db_operations,
 };
@@ -88,12 +87,17 @@ pub async fn get_moisture(
         } else {
             let moisture: f32 = data.parse().unwrap_or(0.3);
 
-            db_operations::create_new_plant(&pool, chat_id.0, &name, moisture).await?;
+            let plant_id = db_operations::create_new_plant(&pool, chat_id.0, &name, moisture).await?;
 
             bot.send_message(chat_id, format!("🌿 Растение '{name}' добавлено!"))
                 .reply_markup(main_menu_buttons())
                 .await?;
-            dialogue.exit().await?;
+                bot.send_message(chat_id, "✅ Сохранено!")
+                    .await?;
+                dialogue.update(MeasurementDialogue::CreatingPot(
+    PotCreationDialog::WaitingForPotWeight { plant_id }
+)).await?;
+bot.send_message(chat_id, "🪴 Теперь настроим горшок!\n\nВведите вес пустого горшка в граммах:").await?;
         }
     }
     bot.answer_callback_query(q.id).await?;
@@ -118,11 +122,13 @@ pub async fn get_custom_moisture(
     if let Some(text) = msg.text() {
         if let Ok(val) = text.replace(",", ".").parse::<f32>() {
             if (0.0..=1.0).contains(&val) {
-                db_operations::create_new_plant(&pool, msg.chat.id.0, &name, val).await?;
+                let plant_id = db_operations::create_new_plant(&pool, msg.chat.id.0, &name, val).await?;
                 bot.send_message(msg.chat.id, "✅ Сохранено!")
-                    .reply_markup(main_menu_buttons())
                     .await?;
-                dialogue.exit().await?;
+                dialogue.update(MeasurementDialogue::CreatingPot(
+    PotCreationDialog::WaitingForPotWeight { plant_id }
+)).await?;
+bot.send_message(msg.chat.id, "🪴 Теперь настроим горшок!\n\nВведите вес пустого горшка в граммах:").await?;
             } else {
                 bot.send_message(msg.chat.id, "Введите число от 0 до 1.")
                     .await?;
