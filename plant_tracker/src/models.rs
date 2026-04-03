@@ -196,3 +196,10 @@ pub struct PlantDetails {
     pub dry_soil_weight: i64,
     pub last_measurement_date: Option<NaiveDate>,
 }
+
+pub struct PlantMeasurementsHistory{
+    pub plants_name: String,
+    pub weight: f32,
+    pub date: NaiveDate,
+    pub measuring_type: String,
+}
