@@ -210,7 +210,6 @@ ORDER BY p.id, m.date DESC",
     Ok(res)
 }
 
-
 /// Deletes a plant and all its associated data (cascades to measurements and pot configs).
 pub async fn delete_plant(pool: &PgPool, plant_id: i64) -> sqlx::Result<()> {
     sqlx::query!("DELETE FROM plants WHERE id = $1", plant_id)
@@ -246,7 +245,6 @@ pub async fn delete_last_measurement(pool: &PgPool, plant_id: i64) -> sqlx::Resu
     Ok(())
 }
 
-
 /// Returns plant details with active pot config and last measurement date for all user's plants.
 /// Used by [`get_list_of_all_plants`] to render the plant list screen.
 pub async fn get_list_of_all_user_plants(
@@ -266,8 +264,6 @@ GROUP BY p.id, p.plants_name, p.target_moisture, pot.pot_weight, pot.dry_soil_we
     .fetch_all(pool)
     .await
 }
-
-
 
 /// Returns the last 20 measurements for a plant, newest first.
 /// Filters by both `plant_id` and `chat_id` to prevent access to another user's data.

@@ -6,7 +6,6 @@ use teloxide::types::ChatId;
 use crate::bot::handlers::plants::get_all_plants_status;
 use crate::db_operations;
 
-
 /// Sends watering reminders to all users who have plants that need urgent attention.
 ///
 /// Called daily at 09:00 by [`notification_loop`].

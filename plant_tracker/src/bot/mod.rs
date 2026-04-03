@@ -36,7 +36,6 @@ use sqlx::postgres::PgPoolOptions;
 pub type MyDialogue = Dialogue<MeasurementDialogue, InMemStorage<MeasurementDialogue>>;
 pub type HandlerResult = Result<(), Box<dyn std::error::Error + Send + Sync>>;
 
-
 /// Entry point of the bot. Initialises the database pool, starts the
 /// notification loop, registers bot commands and launches the dispatcher.
 ///
@@ -199,7 +198,6 @@ pub async fn plant_bot() {
         .dispatch()
         .await;
 }
-
 
 /// Sends morning watering reminders to all users at 09:00.
 /// Checks every 30 seconds, sleeps 60 seconds after sending to avoid double-send.

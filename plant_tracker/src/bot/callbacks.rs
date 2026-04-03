@@ -6,7 +6,6 @@ use crate::bot::keyboards::main_menu_buttons;
 use crate::bot::{HandlerResult, MyDialogue};
 use crate::models::MeasurementType;
 
-
 /// Parses a date string from callback data into [`NaiveDate`].
 ///
 /// # Supported formats
@@ -24,7 +23,6 @@ pub fn parse_date(q: &str) -> Option<NaiveDate> {
         _ => NaiveDate::parse_from_str(q, "%Y-%m-%d").ok(),
     }
 }
-
 
 /// Parses a measurement type string from callback data into [`MeasurementType`].
 ///

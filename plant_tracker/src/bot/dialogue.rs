@@ -87,8 +87,6 @@ pub enum PlantCreationDialogue {
     WaitingForCustomMoisture { name: String },
 }
 
-
-
 /// FSM state for the "configure pot" dialogue.
 ///
 /// Transitions:
@@ -103,15 +101,10 @@ pub enum PotCreationDialog {
     /// Entry point. Waiting for plant selection via inline keyboard.
     #[default]
     ChoosePlantName,
-    
-     /// Plant selected. Waiting for empty pot weight input (grams, integer).
-    WaitingForPotWeight {
-        plant_id: i64,
-    },
+
+    /// Plant selected. Waiting for empty pot weight input (grams, integer).
+    WaitingForPotWeight { plant_id: i64 },
 
     /// Pot weight collected. Waiting for dry soil weight input (grams, integer).
-    WaitingForDrySoilWeight {
-        plant_id: i64,
-        pot_weight: i64,
-    },
+    WaitingForDrySoilWeight { plant_id: i64, pot_weight: i64 },
 }

@@ -194,17 +194,16 @@ impl fmt::Display for WateringStatus {
 #[derive(Debug, FromRow)]
 pub struct PlantDetails {
     pub plants_name: String,
-     /// Target residual moisture fraction in range `0.0..=1.0`.
+    /// Target residual moisture fraction in range `0.0..=1.0`.
     pub target_moisture: f32,
-     /// Weight of the empty pot in grams. `None` if no pot config exists.
+    /// Weight of the empty pot in grams. `None` if no pot config exists.
     pub pot_weight: i64,
-     /// Weight of fully dry soil in grams. `None` if no pot config exists.
+    /// Weight of fully dry soil in grams. `None` if no pot config exists.
     pub dry_soil_weight: i64,
     /// Date of the most recent measurement of any type.
     /// `None` if no measurements have been recorded yet.
     pub last_measurement_date: Option<NaiveDate>,
 }
-
 
 /// A single measurement record joined with the plant name.
 /// Used to render the measurement history screen ([`get_measurement_record_20`]).

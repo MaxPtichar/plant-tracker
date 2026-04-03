@@ -35,7 +35,9 @@ pub async fn receive_plant_for_record(
         .reply_markup(back_to_my_plants())
         .await?;
 
-        dialogue.update(MeasurementDialogue::WaitingForPlantRecord).await?;
+        dialogue
+            .update(MeasurementDialogue::WaitingForPlantRecord)
+            .await?;
     }
     Ok(())
 }

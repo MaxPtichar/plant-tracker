@@ -111,7 +111,6 @@ pub async fn handle_command(
     Ok(())
 }
 
-
 /// Handles inline keyboard button presses from the main and submenu screens.
 ///
 /// Matches `q.data` string directly against known callback values:
