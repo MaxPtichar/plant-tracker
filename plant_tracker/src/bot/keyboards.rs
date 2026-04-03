@@ -86,7 +86,7 @@ pub fn my_plants_menu() -> InlineKeyboardMarkup {
     ])
 }
 
-pub fn plant_keyboard(plants: &[Plant]) -> InlineKeyboardMarkup {
+pub fn plant_keyboard(plants: &[Plant], back_to: &str) -> InlineKeyboardMarkup {
     InlineKeyboardMarkup::new(
         plants
             .iter()
@@ -97,8 +97,8 @@ pub fn plant_keyboard(plants: &[Plant]) -> InlineKeyboardMarkup {
                 )]
             })
             .chain(std::iter::once(vec![InlineKeyboardButton::callback(
-                "❌ Отмена",
-                "cancel_action",
+                "↩︎  Назад",
+        back_to,
             )]))
             .collect::<Vec<_>>(),
     )
@@ -138,3 +138,10 @@ pub fn back_to_my_plants() -> InlineKeyboardMarkup {
         "MyPlants",
     )]])
 }
+
+pub fn confrim_delete() -> InlineKeyboardMarkup {
+    InlineKeyboardMarkup::new(vec![vec![
+            InlineKeyboardButton::callback("✅ Да", "ConfirmDelete"),
+            InlineKeyboardButton::callback("❌ Нет", "MyPlants"),
+        ]])
+    }
