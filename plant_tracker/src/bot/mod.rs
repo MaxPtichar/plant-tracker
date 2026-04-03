@@ -19,7 +19,9 @@ use teloxide::utils::command::BotCommands;
 use crate::bot::callbacks::cancel_callback;
 use crate::bot::commands::{handle_command, handle_menu_buttons};
 use crate::bot::dialogue::PotCreationDialog;
+use crate::bot::handlers::delete_plants::{receive_answer, receive_plant_for_delete};
 use crate::bot::handlers::measurement::receive_plant;
+use crate::bot::handlers::measurements_record::receive_plant_for_record;
 use crate::bot::handlers::plant_creation::{get_custom_moisture, get_moisture, get_plant_name};
 use crate::bot::handlers::pot_creation::{
     receive_dry_soil_weight, receive_plant_for_pot, recieve_pot_weight,
@@ -118,16 +120,23 @@ pub async fn plant_bot() {
                             || d == "CreatePlant"
                             || d == "CreatePot"
                             || d == "Start"
+                           
+                            
                     })
                 })
                 .endpoint(handle_menu_buttons),
             )
+            .branch(dptree::case![MeasurementDialogue::WaitingForPlantDelete].endpoint(receive_plant_for_delete))
+                .branch(dptree::case![MeasurementDialogue::WaitingForConfirmDelete { plant_id }].endpoint(receive_answer))
+            
             .branch(
                 dptree::case![MeasurementDialogue::CreatingPot(inner_dialogue)].branch(
                     dptree::case![PotCreationDialog::ChoosePlantName]
                         .endpoint(receive_plant_for_pot),
                 ),
             )
+            .branch(dptree::case![MeasurementDialogue::WaitingForPlantRecord]
+    .endpoint(receive_plant_for_record))
             .branch(
                 dptree::case![MeasurementDialogue::CreatingPot(inner_dialogue)].branch(
                     dptree::case![PotCreationDialog::ChoosePlantName]
@@ -140,6 +149,7 @@ pub async fn plant_bot() {
                         .endpoint(get_moisture),
                 ),
             )
+
             .branch(dptree::case![MeasurementDialogue::WaitingForPlant].endpoint(receive_plant))
             .branch(
                 dptree::case![MeasurementDialogue::WaitingForWeight {
