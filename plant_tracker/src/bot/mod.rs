@@ -5,7 +5,6 @@ pub mod handlers;
 pub mod keyboards;
 pub mod notification;
 
-
 use std::time::Duration;
 
 pub use commands::Command;
@@ -22,7 +21,9 @@ use crate::bot::commands::{handle_command, handle_menu_buttons};
 use crate::bot::dialogue::PotCreationDialog;
 use crate::bot::handlers::measurement::receive_plant;
 use crate::bot::handlers::plant_creation::{get_custom_moisture, get_moisture, get_plant_name};
-use crate::bot::handlers::pot_creation::{receive_dry_soil_weight, receive_plant_for_pot, recieve_pot_weight};
+use crate::bot::handlers::pot_creation::{
+    receive_dry_soil_weight, receive_plant_for_pot, recieve_pot_weight,
+};
 use crate::bot::handlers::{receive_date, receive_type, receive_weight};
 use crate::bot::notification::chat_notification;
 use chrono::{Local, Timelike};
@@ -68,8 +69,11 @@ pub async fn plant_bot() {
     .branch(
         Update::filter_message()
             .branch(
-                dptree::case![MeasurementDialogue::WaitingForWeight { plant_id, plant_name }]
-                    .endpoint(receive_weight),
+                dptree::case![MeasurementDialogue::WaitingForWeight {
+                    plant_id,
+                    plant_name
+                }]
+                .endpoint(receive_weight),
             )
             .branch(
                 dptree::case![MeasurementDialogue::CreatingPlant(inner_dialogue)]
@@ -83,19 +87,19 @@ pub async fn plant_bot() {
                     ),
             )
             .branch(
-    dptree::case![MeasurementDialogue::CreatingPot(inner_dialogue)]
-        .branch(
-            dptree::case![PotCreationDialog::WaitingForPotWeight { plant_id }]
-                .endpoint(recieve_pot_weight),
-        )
-        .branch(
-            dptree::case![PotCreationDialog::WaitingForDrySoilWeight { plant_id, pot_weight }]
-                .endpoint(receive_dry_soil_weight),
-        ),
-)
-            
-
-
+                dptree::case![MeasurementDialogue::CreatingPot(inner_dialogue)]
+                    .branch(
+                        dptree::case![PotCreationDialog::WaitingForPotWeight { plant_id }]
+                            .endpoint(recieve_pot_weight),
+                    )
+                    .branch(
+                        dptree::case![PotCreationDialog::WaitingForDrySoilWeight {
+                            plant_id,
+                            pot_weight
+                        }]
+                        .endpoint(receive_dry_soil_weight),
+                    ),
+            ),
     )
     .branch(
         Update::filter_callback_query()
@@ -105,22 +109,31 @@ pub async fn plant_bot() {
                     q.data.as_deref().map_or(false, |d| {
                         d == "status"
                             || d == "Addmeasurement"
+                            || d == "MyPlants"
+                            || d == "PlantList"
+                            || d == "DeletePlant"
+                            || d == "MyMeasurements"
                             || d == "LastFeed"
                             || d == "Cancel"
                             || d == "CreatePlant"
                             || d == "CreatePot"
+                            || d == "Start"
                     })
                 })
                 .endpoint(handle_menu_buttons),
             )
-
-            .branch(dptree::case![MeasurementDialogue::CreatingPot(inner_dialogue)]
-        .branch(dptree::case![PotCreationDialog::ChoosePlantName].endpoint(receive_plant_for_pot)))       
-
-
-
-            .branch(dptree::case![MeasurementDialogue::CreatingPot(inner_dialogue)]
-        .branch(dptree::case![PotCreationDialog::ChoosePlantName].endpoint(receive_plant_for_pot)))
+            .branch(
+                dptree::case![MeasurementDialogue::CreatingPot(inner_dialogue)].branch(
+                    dptree::case![PotCreationDialog::ChoosePlantName]
+                        .endpoint(receive_plant_for_pot),
+                ),
+            )
+            .branch(
+                dptree::case![MeasurementDialogue::CreatingPot(inner_dialogue)].branch(
+                    dptree::case![PotCreationDialog::ChoosePlantName]
+                        .endpoint(receive_plant_for_pot),
+                ),
+            )
             .branch(
                 dptree::case![MeasurementDialogue::CreatingPlant(inner_dialogue)].branch(
                     dptree::case![PlantCreationDialogue::WaitingForMoisture { name }]
@@ -129,9 +142,12 @@ pub async fn plant_bot() {
             )
             .branch(dptree::case![MeasurementDialogue::WaitingForPlant].endpoint(receive_plant))
             .branch(
-    dptree::case![MeasurementDialogue::WaitingForWeight { plant_id, plant_name }]
-        .endpoint(receive_plant)
-)
+                dptree::case![MeasurementDialogue::WaitingForWeight {
+                    plant_id,
+                    plant_name
+                }]
+                .endpoint(receive_plant),
+            )
             .branch(
                 dptree::case![MeasurementDialogue::WaitingForType { plant_id, weight }]
                     .endpoint(receive_type),
@@ -155,8 +171,8 @@ pub async fn plant_bot() {
 async fn notification_loop(bot_clone: Bot, pool_clone: PgPool) {
     loop {
         let now = Local::now();
-        if now.hour() == 21 && now.minute() == 18 {
-            chat_notification(&bot_clone,&pool_clone).await;
+        if now.hour() == 21 && now.minute() == 36 {
+            chat_notification(&bot_clone, &pool_clone).await;
             tokio::time::sleep(Duration::from_secs(60)).await;
         }
         tokio::time::sleep(Duration::from_secs(30)).await;
