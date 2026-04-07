@@ -6,7 +6,7 @@ use sqlx::FromRow;
 ///
 /// Determines the context in which a weight measurement was taken,
 /// which affects how moisture calculations are performed.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum MeasurementType {
     /// Routine weight check, no watering or feeding performed.
     Regular,
@@ -62,17 +62,38 @@ pub struct User {
     pub created_at: DateTime<Utc>,
 }
 
-/// A plant belonging to a user.
 #[derive(Debug, FromRow)]
 pub struct Plant {
     pub id: i64,
     pub user_id: i64,
     pub plants_name: String,
-    /// Target residual moisture fraction in range `0.0..=1.0`.
-    /// Used to calculate when the next watering is due.
-    pub target_moisture: f32,
-}
 
+    /// Plant type affects stomatal resistance and watering threshold.
+    /// Values: `"Regular"` | `"Tropical"` | `"Succulent"`
+    pub plant_type: String,
+
+    /// Light level affects net radiation balance (Rn) in Penman-Monteith.
+    /// Values: `"window"` | `"shadow"`
+    pub light_level: String,
+
+    /// Air circulation affects aerodynamic resistance (ra) in Penman-Monteith.
+    /// Values: `"normal"` | `"stagnant"`
+    pub air_circulation: String,
+
+    /// Calibration coefficient combining leaf area and plant health.
+    /// Updated automatically after each completed watering cycle.
+    /// Default: `1.0`
+    pub transpiration_coef: f32,
+
+    /// Exponential moving average of evaporation rate g/day across all cycles.
+    /// Used as fallback when current cycle has fewer than 2 measurements.
+    /// `None` until first cycle is completed.
+    pub avg_r: Option<f32>,
+
+    /// Number of completed watering cycles.
+    /// Used as weight in [`weighted_r`] calculation.
+    pub cycles_count: i32,
+}
 /// Physical configuration of a pot, used for moisture calculations.
 ///
 /// Multiple configs per plant are allowed — only the active one
@@ -81,12 +102,22 @@ pub struct Plant {
 pub struct PotConfig {
     pub id: i64,
     pub plant_id: i64,
+
     /// Weight of the empty pot in grams.
     pub pot_weight: i64,
+
     /// Weight of fully dry soil in grams.
     pub dry_soil_weight: i64,
+
     /// Whether this config is currently in use.
     pub is_active: bool,
+
+    /// Pot diameter in cm. Used to calculate surface area for Penman-Monteith.
+    pub pot_diameter_cm: f32,
+
+    /// Soil type affects Field Capacity and Permanent Wilting Point.
+    /// Values: `"universal"` | `"succulent"` | `"tropical"`
+    pub soil_type: String,
 }
 
 /// A single weight measurement for a plant.
@@ -194,8 +225,6 @@ impl fmt::Display for WateringStatus {
 #[derive(Debug, FromRow)]
 pub struct PlantDetails {
     pub plants_name: String,
-    /// Target residual moisture fraction in range `0.0..=1.0`.
-    pub target_moisture: f32,
     /// Weight of the empty pot in grams. `None` if no pot config exists.
     pub pot_weight: i64,
     /// Weight of fully dry soil in grams. `None` if no pot config exists.
@@ -215,4 +244,28 @@ pub struct PlantMeasurementsHistory {
     pub date: NaiveDate,
     /// String representation of [`MeasurementType`].
     pub measuring_type: String,
+}
+
+#[derive(Debug, serde::Serialize, sqlx::FromRow)]
+pub struct PlantFullContext {
+    // Данные из таблицы plants
+    pub plant_id: i64,
+    pub plants_name: String,
+    pub plant_type: String,
+    pub light_level: String,
+    pub air_circulation: String,
+    pub transpiration_coef: f32,
+    pub avg_r: Option<f32>,
+    pub cycles_count: i32,
+
+    // Данные из таблицы pot_configs
+    pub pot_weight: i64,
+    pub dry_soil_weight: i64,
+    pub pot_diameter_cm: f32,
+    pub soil_type: String,
+
+    // Те самые замеры из таблицы measurements
+    pub current_weight: Option<f32>,
+    pub last_watering_weight: Option<f32>,
+    pub last_watering_date: Option<NaiveDate>,
 }
