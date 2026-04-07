@@ -60,6 +60,11 @@ pub enum MeasurementDialogue {
         weight: f32,
         type_: MeasurementType,
     },
+    WaitingForCustomDate {
+        plant_id: i64,
+        weight: f32,
+        type_: MeasurementType,
+    },
 }
 
 /// FSM state for the "add new plant" dialogue.
@@ -78,13 +83,18 @@ pub enum PlantCreationDialogue {
     #[default]
     WaitingForName,
 
-    /// Name collected. Waiting for residual moisture threshold
-    /// via inline keyboard — either a preset value or "custom".
-    WaitingForMoisture { name: String },
-
-    /// User chose custom moisture. Waiting for a float in range `0.0..=1.0`
-    /// as a text message (commas normalised to dots).
-    WaitingForCustomMoisture { name: String },
+    WaitingForPlantType {
+        name: String,
+    },
+    WaitingForLightLevel {
+        name: String,
+        plant_type: String,
+    },
+    WaitingForAirCirculation {
+        name: String,
+        plant_type: String,
+        light_level: String,
+    },
 }
 
 /// FSM state for the "configure pot" dialogue.
@@ -107,4 +117,16 @@ pub enum PotCreationDialog {
 
     /// Pot weight collected. Waiting for dry soil weight input (grams, integer).
     WaitingForDrySoilWeight { plant_id: i64, pot_weight: i64 },
+
+    WaitingForDiameter {
+        plant_id: i64,
+        pot_weight: i64,
+        dry_soil_weight: i64,
+    },
+    WaitingForSoilType {
+        plant_id: i64,
+        pot_weight: i64,
+        dry_soil_weight: i64,
+        pot_diameter_cm: f32,
+    },
 }
