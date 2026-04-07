@@ -20,7 +20,7 @@ pub fn parse_date(q: &str) -> Option<NaiveDate> {
     match q {
         "today" => Some(get_current_date()),
         "yesterday" => Some(get_yesterday_date()),
-        _ => NaiveDate::parse_from_str(q, "%Y-%m-%d").ok(),
+        _ => None,
     }
 }
 
