@@ -1,6 +1,6 @@
 use crate::models::{
-    Measurements, Plant, PlantDetails, PlantMeasurementsHistory, PlantWithLastFeedWatering,
-    PotConfig, User,
+    Measurements, Plant, PlantDetails, PlantFullContext, PlantMeasurementsHistory,
+    PlantWithLastFeedWatering, PotConfig, User,
 };
 use chrono::NaiveDate;
 use sqlx::PgPool;
@@ -25,13 +25,18 @@ pub async fn create_new_plant(
     pool: &PgPool,
     user_id: i64,
     plant_name: &str,
-    target_moisture: f32,
+    plant_type: &str,
+    light_level: &str,
+    air_circulation: &str,
 ) -> sqlx::Result<i64> {
     let result = sqlx::query!(
-        "INSERT INTO plants (user_id, plants_name, target_moisture) VALUES ($1, $2, $3) RETURNING id ",
+        "INSERT INTO plants (user_id, plants_name, plant_type, light_level, air_circulation)
+         VALUES ($1, $2, $3, $4, $5) RETURNING id",
         user_id,
         plant_name,
-        target_moisture
+        plant_type,
+        light_level,
+        air_circulation,
     )
     .fetch_one(pool)
     .await?;
@@ -45,6 +50,8 @@ pub async fn create_pot_config(
     plant_id: i64,
     pot_w: i64,
     dry_w: i64,
+    pot_diameter_cm: f32,
+    soil_type: &str,
 ) -> sqlx::Result<()> {
     sqlx::query!(
         "UPDATE pot_configs SET is_active = false WHERE plant_id = $1",
@@ -53,10 +60,18 @@ pub async fn create_pot_config(
     .execute(pool)
     .await?;
 
-    sqlx::query!("INSERT INTO pot_configs (plant_id, pot_weight, dry_soil_weight, is_active) VALUES($1, $2, $3, $4)", 
-plant_id, pot_w, dry_w, true)
-.execute(pool)
-.await?;
+    sqlx::query!(
+        "INSERT INTO pot_configs 
+         (plant_id, pot_weight, dry_soil_weight, is_active, pot_diameter_cm, soil_type)
+         VALUES ($1, $2, $3, true, $4, $5)",
+        plant_id,
+        pot_w,
+        dry_w,
+        pot_diameter_cm,
+        soil_type
+    )
+    .execute(pool)
+    .await?;
 
     Ok(())
 }
@@ -65,12 +80,9 @@ plant_id, pot_w, dry_w, true)
 pub async fn get_active_config(pool: &PgPool, plant_id: i64) -> sqlx::Result<Option<PotConfig>> {
     sqlx::query_as!(
         PotConfig,
-        "SELECT id, 
-    plant_id, 
-    pot_weight, 
-    dry_soil_weight, 
-    is_active
-    FROM pot_configs WHERE plant_id = $1 AND is_active = true",
+        "SELECT id, plant_id, pot_weight, dry_soil_weight, is_active,
+         pot_diameter_cm, soil_type
+         FROM pot_configs WHERE plant_id = $1 AND is_active = true",
         plant_id
     )
     .fetch_optional(pool)
@@ -79,15 +91,106 @@ pub async fn get_active_config(pool: &PgPool, plant_id: i64) -> sqlx::Result<Opt
 
 /// Returns all plants belonging to a user.
 pub async fn get_user_plants(pool: &PgPool, user_id: i64) -> sqlx::Result<Vec<Plant>> {
-    let plants = sqlx::query_as!(
+    sqlx::query_as!(
         Plant,
-        "SELECT id, user_id, plants_name, target_moisture FROM plants WHERE user_id = $1",
+        "SELECT id, user_id, plants_name,
+         plant_type, light_level, air_circulation,
+         transpiration_coef, avg_r, cycles_count
+         FROM plants WHERE user_id = $1",
         user_id
     )
     .fetch_all(pool)
-    .await?;
+    .await
+}
 
-    Ok(plants)
+//return all data that plant have
+pub async fn get_all_plant_data(
+    pool: &PgPool,
+    user_id: i64,
+    plant_id: i64,
+) -> sqlx::Result<PlantFullContext> {
+    sqlx::query_as!(
+        PlantFullContext,
+        r#"
+    SELECT 
+        p.id AS "plant_id!",
+        p.plants_name AS "plants_name!",
+        p.plant_type AS "plant_type!",
+        p.light_level AS "light_level!",
+        p.air_circulation AS "air_circulation!",
+        p.transpiration_coef AS "transpiration_coef!",
+        p.avg_r,
+        p.cycles_count AS "cycles_count!",
+        pc.pot_weight AS "pot_weight!",
+        pc.dry_soil_weight AS "dry_soil_weight!",
+        pc.pot_diameter_cm AS "pot_diameter_cm!",
+        pc.soil_type AS "soil_type!",
+        -- Добавлена запятая перед вторым подзапросом
+        (SELECT weight FROM measurements 
+         WHERE plant_id = p.id AND measuring_type = 'Regular'
+         ORDER BY date DESC LIMIT 1) AS "current_weight",
+        (SELECT weight FROM measurements 
+         WHERE plant_id = p.id AND measuring_type = 'AfterWatering' 
+         ORDER BY date DESC LIMIT 1) AS "last_watering_weight",
+
+         (SELECT date FROM measurements 
+     WHERE plant_id = p.id AND measuring_type = 'AfterWatering' 
+     ORDER BY date DESC LIMIT 1) AS "last_watering_date"
+    FROM plants p
+    JOIN pot_configs pc ON p.id = pc.plant_id
+    WHERE p.user_id = $1 AND plant_id = $2 AND pc.is_active = true
+    LIMIT 1; 
+    "#,
+        user_id,
+        plant_id
+    )
+    .fetch_one(pool)
+    .await
+}
+
+
+//return data for all plants that user have
+pub async fn get_all_plants_data(
+    pool: &PgPool,
+    user_id: i64,
+) -> sqlx::Result<Vec<PlantFullContext>> {
+    sqlx::query_as!(
+        PlantFullContext,
+        r#"
+    SELECT 
+        p.id AS "plant_id!",
+        p.plants_name AS "plants_name!",
+        p.plant_type AS "plant_type!",
+        p.light_level AS "light_level!",
+        p.air_circulation AS "air_circulation!",
+        p.transpiration_coef AS "transpiration_coef!",
+        p.avg_r,
+        p.cycles_count AS "cycles_count!",
+        pc.pot_weight AS "pot_weight!",
+        pc.dry_soil_weight AS "dry_soil_weight!",
+        pc.pot_diameter_cm AS "pot_diameter_cm!",
+        pc.soil_type AS "soil_type!",
+        -- Добавлена запятая перед вторым подзапросом
+        (SELECT weight FROM measurements 
+         WHERE plant_id = p.id AND measuring_type = 'Regular'
+         ORDER BY date DESC LIMIT 1) AS "current_weight",
+        (SELECT weight FROM measurements 
+         WHERE plant_id = p.id AND measuring_type = 'AfterWatering' 
+         ORDER BY date DESC LIMIT 1) AS "last_watering_weight",
+
+         (SELECT date FROM measurements 
+     WHERE plant_id = p.id AND measuring_type = 'AfterWatering' 
+     ORDER BY date DESC LIMIT 1) AS "last_watering_date"
+    FROM plants p
+    JOIN pot_configs pc ON p.id = pc.plant_id
+    WHERE p.user_id = $1 AND pc.is_active = true
+    LIMIT 1; 
+    "#,
+        user_id,
+        
+    )
+    .fetch_all(pool)
+    .await
 }
 
 /// Adds a new pot weight measurement for a plant.
@@ -152,12 +255,25 @@ pub async fn get_last_watering(pool: &PgPool, plant_id: i64) -> sqlx::Result<Opt
 }
 
 /// Returns the weight of the most recent `AfterWatering` measurement for a plant.
-/// Used as the `after_watering_weight` parameter in watering calculations.
+/// Used as the `AfterWatering_weight` parameter in watering calculations.
 /// Returns `None` if no watering has been recorded yet.
 pub async fn get_last_watering_weight(pool: &PgPool, plant_id: i64) -> sqlx::Result<Option<f32>> {
     let res = sqlx::query_scalar!(
         "SELECT weight FROM measurements
         WHERE plant_id = $1 AND measuring_type = 'AfterWatering'
+        ORDER BY date DESC LIMIT 1",
+        plant_id
+    )
+    .fetch_optional(pool)
+    .await?;
+
+    Ok(res)
+}
+
+pub async fn get_last_regular_weight(pool: &PgPool, plant_id: i64) -> sqlx::Result<Option<f32>> {
+    let res = sqlx::query_scalar!(
+        "SELECT weight FROM measurements
+        WHERE plant_id = $1 AND measuring_type = 'Regular'
         ORDER BY date DESC LIMIT 1",
         plant_id
     )
@@ -221,15 +337,16 @@ pub async fn delete_plant(pool: &PgPool, plant_id: i64) -> sqlx::Result<()> {
 
 /// Returns a single plant by its id.
 pub async fn get_plant(pool: &PgPool, plant_id: i64) -> sqlx::Result<Plant> {
-    let plant = sqlx::query_as!(
+    sqlx::query_as!(
         Plant,
-        "SELECT id, user_id, plants_name, target_moisture FROM plants WHERE id = $1",
+        "SELECT id, user_id, plants_name,
+         plant_type, light_level, air_circulation,
+         transpiration_coef, avg_r, cycles_count
+         FROM plants WHERE id = $1",
         plant_id
     )
     .fetch_one(pool)
-    .await?;
-
-    Ok(plant)
+    .await
 }
 
 /// Deletes the most recent measurement for a plant (used for /undo).
@@ -247,18 +364,23 @@ pub async fn delete_last_measurement(pool: &PgPool, plant_id: i64) -> sqlx::Resu
 
 /// Returns plant details with active pot config and last measurement date for all user's plants.
 /// Used by [`get_list_of_all_plants`] to render the plant list screen.
+///
+///
+///
+
+//переписать эту функци.
 pub async fn get_list_of_all_user_plants(
     pool: &PgPool,
     chat_id: i64,
 ) -> sqlx::Result<Vec<PlantDetails>> {
     sqlx::query_as!(
         PlantDetails,
-        "SELECT p.plants_name, p.target_moisture, pot.pot_weight, pot.dry_soil_weight,
+        "SELECT p.plants_name, pot.pot_weight, pot.dry_soil_weight,
 MAX(m.date) as last_measurement_date FROM plants p 
 LEFT JOIN measurements m ON p.id = m.plant_id
 LEFT JOIN pot_configs pot ON p.id = pot.plant_id AND pot.is_active = true
 WHERE p.user_id = $1
-GROUP BY p.id, p.plants_name, p.target_moisture, pot.pot_weight, pot.dry_soil_weight",
+GROUP BY p.id, p.plants_name, pot.pot_weight, pot.dry_soil_weight",
         chat_id
     )
     .fetch_all(pool)
@@ -282,6 +404,55 @@ ORDER BY m.date DESC
 LIMIT 20;",
         plant_id,
         chat_id
+    )
+    .fetch_all(pool)
+    .await
+}
+
+/// Updates avg_r, transpiration_coef and cycles_count after a completed watering cycle.
+/// Called when a new AfterWatering measurement is added.
+pub async fn update_plant_after_cycle(
+    pool: &PgPool,
+    plant_id: i64,
+    new_avg_r: f32,
+    new_transpiration_coef: f32,
+) -> sqlx::Result<()> {
+    sqlx::query!(
+        "UPDATE plants SET
+         avg_r = $1,
+         transpiration_coef = $2,
+         cycles_count = cycles_count + 1
+         WHERE id = $3",
+        new_avg_r,
+        new_transpiration_coef,
+        plant_id
+    )
+    .execute(pool)
+    .await?;
+
+    Ok(())
+}
+
+/// Returns Regular measurements after the last AfterWatering, newest first.
+/// Used for current cycle evaporation rate calculation.
+pub async fn get_regular_after_last_watering(
+    pool: &PgPool,
+    plant_id: i64,
+) -> sqlx::Result<Vec<Measurements>> {
+    sqlx::query_as!(
+        Measurements,
+        "SELECT id, plant_id, weight, date, measuring_type
+         FROM measurements
+         WHERE plant_id = $1
+           AND measuring_type = 'Regular'
+           AND date > COALESCE(
+               (SELECT MAX(date) FROM measurements
+                WHERE plant_id = $1
+                AND measuring_type = 'AfterWatering'),
+               '1970-01-01'
+           )
+         ORDER BY date DESC",
+        plant_id
     )
     .fetch_all(pool)
     .await
