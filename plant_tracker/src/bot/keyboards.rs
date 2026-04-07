@@ -157,3 +157,51 @@ pub fn confrim_delete() -> InlineKeyboardMarkup {
         InlineKeyboardButton::callback("❌ Нет", "MyPlants"),
     ]])
 }
+
+pub fn plant_type_keyboard() -> InlineKeyboardMarkup {
+    InlineKeyboardMarkup::new(vec![
+        vec![InlineKeyboardButton::callback("🌵 Суккулент", "Succulent")],
+        vec![InlineKeyboardButton::callback("🌿 Тропическое", "Tropical")],
+        vec![InlineKeyboardButton::callback("🌱 Обычное", "Regular")],
+    ])
+}
+
+pub fn light_level_keyboard() -> InlineKeyboardMarkup {
+    InlineKeyboardMarkup::new(vec![
+        vec![InlineKeyboardButton::callback("☀️ Стоит у окна", "window")],
+        vec![InlineKeyboardButton::callback(
+            "🌥️ В глубине комнаты",
+            "shadow",
+        )],
+    ])
+}
+
+pub fn air_circulation_keyboard() -> InlineKeyboardMarkup {
+    InlineKeyboardMarkup::new(vec![
+        vec![InlineKeyboardButton::callback(
+            "🌬️ Есть сквозняк или вентилятор",
+            "normal",
+        )],
+        vec![InlineKeyboardButton::callback(
+            "😶 Воздух не движется",
+            "stagnant",
+        )],
+    ])
+}
+
+pub fn soil_type_keyboard() -> InlineKeyboardMarkup {
+    InlineKeyboardMarkup::new(vec![
+        vec![InlineKeyboardButton::callback(
+            "🌱 Универсальный грунт",
+            "universal",
+        )],
+        vec![InlineKeyboardButton::callback(
+            "🌵 Грунт для кактусов и суккулентов",
+            "succulent",
+        )],
+        vec![InlineKeyboardButton::callback(
+            "🌿 Грунт для тропических растений",
+            "tropical",
+        )],
+    ])
+}
