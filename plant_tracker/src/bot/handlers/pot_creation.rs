@@ -4,7 +4,7 @@ use teloxide::prelude::*;
 use crate::{
     bot::{
         HandlerResult, MeasurementDialogue, MyDialogue,
-        keyboards::{back_to, main_menu_buttons},
+        keyboards::{back_to, main_menu_buttons, soil_type_keyboard},
     },
     db_operations,
 };
@@ -57,13 +57,8 @@ pub async fn recieve_pot_weight(
     bot: Bot,
     msg: Message,
     dialogue: MyDialogue,
-    state: PotCreationDialog,
+    plant_id: i64,
 ) -> HandlerResult {
-    let plant_id = match state {
-        PotCreationDialog::WaitingForPotWeight { plant_id } => plant_id,
-        _ => return Ok(()),
-    };
-
     match msg.text() {
         Some(text) => match text.parse::<i64>() {
             Ok(pot_weight) => {
@@ -95,7 +90,7 @@ pub async fn recieve_pot_weight(
             bot.send_message(msg.chat.id, "Введите вес в граммах")
                 .await?;
         }
-    }
+    };
 
     Ok(())
 }
@@ -113,42 +108,33 @@ pub async fn recieve_pot_weight(
 pub async fn receive_dry_soil_weight(
     bot: Bot,
     dialogue: MyDialogue,
-    pool: PgPool,
     msg: Message,
-    state: PotCreationDialog,
+    (plant_id, pot_weight): (i64, i64),
 ) -> HandlerResult {
-    let (plant_id, pot_weight) = match state {
-        PotCreationDialog::WaitingForDrySoilWeight {
-            plant_id,
-            pot_weight,
-        } => (plant_id, pot_weight),
-        _ => return Ok(()),
-    };
-
     match msg.text() {
         Some(text) => match text.parse::<i64>() {
-            Ok(weight_dry) => {
+            Ok(dry_soil_weight) => {
                 bot.send_message(
                     msg.chat.id,
                     format!(
-                        "✅ Горшок настроен!\n\n\
-    🪴 ID растения: {}\n\
-    ⚖️ Вес пустого горшка: {} г.\n\
-    ⏳ Вес сухой почвы: {} г.\n\
-    💧 Общий базовый вес (сухой): {} г.\n\n\
-    Теперь при взвешивании я смогу точно рассчитать остаток влаги.",
-                        plant_id,
-                        pot_weight,
-                        weight_dry,
-                        pot_weight + weight_dry
+                        "🪴 Отлично! Почти готово.
+
+Измерьте диаметр горшка по верхнему краю и введите в сантиметрах.
+
+Например: 12, 16, 20",
                     ),
                 )
-                .reply_markup(main_menu_buttons())
                 .await?;
 
-                db_operations::create_pot_config(&pool, plant_id, pot_weight, weight_dry).await?;
-
-                dialogue.exit().await?;
+                dialogue
+                    .update(MeasurementDialogue::CreatingPot(
+                        PotCreationDialog::WaitingForDiameter {
+                            plant_id,
+                            pot_weight,
+                            dry_soil_weight,
+                        },
+                    ))
+                    .await?;
             }
 
             Err(_) => {
@@ -161,6 +147,107 @@ pub async fn receive_dry_soil_weight(
                 .await?;
         }
     }
+
+    Ok(())
+}
+
+pub async fn receive_pot_diameter(
+    bot: Bot,
+    dialogue: MyDialogue,
+    msg: Message,
+    (plant_id, pot_weight, dry_soil_weight): (i64, i64, i64),
+) -> HandlerResult {
+    match msg.text() {
+        Some(text) => match text.parse::<f32>() {
+            Ok(pot_diameter_cm) => {
+                bot.send_message(
+                    msg.chat.id,
+                    format!(
+                        "🌱 Какой грунт используется?
+
+Тип грунта влияет на то, как быстро земля отдаёт воду корням.
+Если не уверены — выбирайте универсальный.",
+                    ),
+                )
+                .reply_markup(soil_type_keyboard())
+                .await?;
+
+                dialogue
+                    .update(MeasurementDialogue::CreatingPot(
+                        PotCreationDialog::WaitingForSoilType {
+                            plant_id,
+                            pot_weight,
+                            dry_soil_weight,
+                            pot_diameter_cm,
+                        },
+                    ))
+                    .await?;
+            }
+
+            Err(_) => {
+                bot.send_message(msg.chat.id, "Введите число").await?;
+            }
+        },
+
+        None => {
+            bot.send_message(msg.chat.id, "Введите диаметр в сантиметрах")
+                .await?;
+        }
+    }
+
+    Ok(())
+}
+
+pub async fn receive_soil_type(
+    bot: Bot,
+    dialogue: MyDialogue,
+    q: CallbackQuery,
+    pool: PgPool,
+    (plant_id, pot_weight, dry_soil_weight, pot_diameter_cm): (i64, i64, i64, f32),
+) -> HandlerResult {
+    bot.answer_callback_query(q.id).await?;
+
+    let soil_type = match q.data.as_deref() {
+        Some("tropical") => "tropical",
+        Some("succulent") => "succulent",
+        _ => "universal",
+    };
+
+    let chat_id = q.message.unwrap().chat().id;
+
+    db_operations::create_pot_config(
+        &pool,
+        plant_id,
+        pot_weight,
+        dry_soil_weight,
+        pot_diameter_cm,
+        soil_type,
+    )
+    .await?;
+
+    bot.send_message(
+        chat_id,
+        format!(
+            "✅ Горшок настроен!\n\n\
+         🪴 ID растения: {}\n\
+         ⚖️ Вес пустого горшка: {} г.\n\
+         ⏳ Вес сухой почвы: {} г.\n\
+         💧 Общий базовый вес (сухой): {} г.\n\
+         📐 Диаметр горшка: {} см.\n\
+         🌱 Тип почвы: {}\n\n\
+         Теперь при взвешивании я смогу точно рассчитать остаток влаги.",
+            plant_id,
+            pot_weight,
+            dry_soil_weight,
+            pot_weight + dry_soil_weight,
+            pot_diameter_cm,
+            soil_type
+        ),
+    )
+    .reply_markup(main_menu_buttons())
+    .await?;
+
+    dialogue.exit().await?;
 
     Ok(())
 }
