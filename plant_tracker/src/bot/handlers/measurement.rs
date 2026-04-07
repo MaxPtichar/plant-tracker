@@ -1,7 +1,9 @@
-use sqlx::PgPool;
+use chrono::NaiveDate;
+use sqlx::{PgPool, pool};
 use teloxide::prelude::*;
 
 use crate::models::MeasurementType;
+use crate::operations::update_avg_cycle;
 use crate::{
     bot::{
         HandlerResult, MeasurementDialogue, MyDialogue,
@@ -50,7 +52,7 @@ pub async fn receive_plant(bot: Bot, q: CallbackQuery, dialogue: MyDialogue) -> 
         let chat_id = q.message.unwrap().chat().id;
         bot.send_message(
             chat_id,
-            format!("☘️ {plant_name}\n\nВведите текущий вес горшка в граммах:"),
+            format!("☘️ {plant_name}\n\nВведите текущий вес растения в граммах:"),
         )
         .await?;
 
@@ -116,12 +118,17 @@ pub async fn receive_type(
     bot: Bot,
     dialogue: MyDialogue,
     q: CallbackQuery,
+    pool: PgPool,
     (plant_id, weight): (i64, f32),
 ) -> HandlerResult {
     if let Some(data) = q.data {
         bot.answer_callback_query(q.id).await?;
 
         if let Some(type_) = parse_measurement_type(&data) {
+           
+
+
+
             dialogue
                 .update(MeasurementDialogue::WaitingForDate {
                     plant_id,
@@ -129,6 +136,9 @@ pub async fn receive_type(
                     type_,
                 })
                 .await?;
+
+
+            
 
             let chat_id = q.message.unwrap().chat().id;
             bot.send_message(chat_id, "Выберите дату: ")
@@ -156,10 +166,36 @@ pub async fn receive_date(
 ) -> HandlerResult {
     let chat_id = q.message.unwrap().chat().id;
 
-    if let Some(data) = q.data {
+    if let Some(data) = q.data.as_deref() {
         bot.answer_callback_query(q.id).await?;
 
         if let Some(date) = parse_date(&data) {
+            return Ok(finalize_measurement(bot, dialogue, chat_id, pool, (plant_id, weight, type_, date)).await?);
+
+        }
+        dialogue.update(MeasurementDialogue::WaitingForCustomDate { 
+            plant_id, weight, type_ 
+        }).await?;
+
+        bot.send_message(chat_id, "Введите дату в формате ДД.ММ.ГГГГ:").await?;
+    }
+
+    Ok(())
+}
+
+
+
+
+pub async fn finalize_measurement(
+    bot: Bot,
+    dialogue: MyDialogue,
+    chat_id: ChatId,
+    pool: PgPool,
+    (plant_id, weight, type_, date): (i64, f32, MeasurementType, NaiveDate),
+) -> HandlerResult {
+
+    db_operations::create_measurement(&pool, plant_id, weight, date, type_.to_string())
+                .await?;
             bot.send_message(
                 chat_id,
                 format!(
@@ -168,23 +204,46 @@ pub async fn receive_date(
                 ),
             )
             .await?;
+             if type_ == MeasurementType::Regular {
+                let user_id = chat_id.0 as i64;
+                update_avg_cycle(plant_id, &pool, user_id).await?;
+
+            }
+
+            dialogue
+                .update(MeasurementDialogue::WaitingForPlant)
+                .await?;
 
             let plants: Vec<crate::models::Plant> =
                 db_operations::get_user_plants(&pool, chat_id.0).await?;
 
-            db_operations::create_measurement(&pool, plant_id, weight, date, type_.to_string())
-                .await?;
-            dialogue
-                .update(MeasurementDialogue::WaitingForPlant)
-                .await?;
             bot.send_message(chat_id, "Выбери растение: ")
-                .reply_markup(plant_keyboard(&plants, "start"))
+                .reply_markup(plant_keyboard(&plants, "Start"))
                 .await?;
-        } else {
-            bot.send_message(chat_id, "Неверный формат даты. Попробуйте еще раз")
-                .await?;
-        }
-    }
 
     Ok(())
+}
+
+
+
+pub async fn receive_custom_date (
+    bot: Bot, 
+    msg: Message, 
+    dialogue: MyDialogue, 
+    pool: PgPool, 
+    (plant_id, weight, type_): (i64, f32, MeasurementType),
+
+) -> HandlerResult {
+    if let Some(text) = msg.text() {
+        if let Ok(date) = NaiveDate::parse_from_str(text, "%d.%m.%Y") {
+            return Ok(finalize_measurement(bot, dialogue, msg.chat.id, pool, (plant_id, weight, type_, date)).await?);
+
+        }
+
+    }
+
+    bot.send_message(msg.chat.id, "Неверный формат. Нужно ДД.ММ.ГГГГ (например 06.04.2026):").await?;
+    Ok(())
+
+
 }
