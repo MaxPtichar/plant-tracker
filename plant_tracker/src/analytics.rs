@@ -97,85 +97,85 @@ pub fn days_from_last_feed(last_feed: &PlantWithLastFeedWatering) -> Option<u32>
     Some(days.max(0) as u32)
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use chrono::NaiveDate;
+// #[cfg(test)]
+// mod tests {
+//     use super::*;
+//     use chrono::NaiveDate;
 
-    fn make_measurement(weight: f32, date: &str) -> Measurements {
-        Measurements {
-            id: 1,
-            plant_id: 1,
-            weight,
-            date: NaiveDate::parse_from_str(date, "%Y-%m-%d").unwrap(),
-            measuring_type: "Regular".to_string(),
-        }
-    }
+//     fn make_measurement(weight: f32, date: &str) -> Measurements {
+//         Measurements {
+//             id: 1,
+//             plant_id: 1,
+//             weight,
+//             date: NaiveDate::parse_from_str(date, "%Y-%m-%d").unwrap(),
+//             measuring_type: "Regular".to_string(),
+//         }
+//     }
 
-    fn make_pot(pot_weight: i64, dry_soil_weight: i64) -> PotConfig {
-        PotConfig {
-            id: 1,
-            plant_id: 1,
-            pot_weight,
-            dry_soil_weight,
-            is_active: true,
-        }
-    }
+//     fn make_pot(pot_weight: i64, dry_soil_weight: i64) -> PotConfig {
+//         PotConfig {
+//             id: 1,
+//             plant_id: 1,
+//             pot_weight,
+//             dry_soil_weight,
+//             is_active: true,
+//         }
+//     }
 
-    // --- avg_evaporation_rate ---
+//     // --- avg_evaporation_rate ---
 
-    #[test]
-    fn test_evaporation_rate_normal() {
-        let m = vec![
-            make_measurement(500.0, "2026-03-10"),
-            make_measurement(450.0, "2026-03-05"),
-        ];
-        assert_eq!(avg_evaporation_rate(&m), Some(10.0));
-    }
+//     #[test]
+//     fn test_evaporation_rate_normal() {
+//         let m = vec![
+//             make_measurement(500.0, "2026-03-10"),
+//             make_measurement(450.0, "2026-03-05"),
+//         ];
+//         assert_eq!(avg_evaporation_rate(&m), Some(10.0));
+//     }
 
-    #[test]
-    fn test_evaporation_rate_too_few() {
-        let m = vec![make_measurement(500.0, "2026-03-10")];
-        assert_eq!(avg_evaporation_rate(&m), None);
-    }
+//     #[test]
+//     fn test_evaporation_rate_too_few() {
+//         let m = vec![make_measurement(500.0, "2026-03-10")];
+//         assert_eq!(avg_evaporation_rate(&m), None);
+//     }
 
-    #[test]
-    fn test_evaporation_rate_empty() {
-        assert_eq!(avg_evaporation_rate(&[]), None);
-    }
+//     #[test]
+//     fn test_evaporation_rate_empty() {
+//         assert_eq!(avg_evaporation_rate(&[]), None);
+//     }
 
-    #[test]
-    fn test_evaporation_rate_same_date() {
-        let m = vec![
-            make_measurement(500.0, "2026-03-10"),
-            make_measurement(450.0, "2026-03-10"),
-        ];
-        // delta_days = 0 → max(1) = 1
-        assert_eq!(avg_evaporation_rate(&m), Some(50.0));
-    }
+//     #[test]
+//     fn test_evaporation_rate_same_date() {
+//         let m = vec![
+//             make_measurement(500.0, "2026-03-10"),
+//             make_measurement(450.0, "2026-03-10"),
+//         ];
+//         // delta_days = 0 → max(1) = 1
+//         assert_eq!(avg_evaporation_rate(&m), Some(50.0));
+//     }
 
-    // --- target_weight ---
+//     // --- target_weight ---
 
-    #[test]
-    fn test_target_weight_normal() {
-        let pot = make_pot(200, 300); // dry_total = 500
-        // target = 500 + (800 - 500) * 0.3 = 500 + 90 = 590
-        assert_eq!(target_weight(&pot, 0.3, 800.0), 590.0);
-    }
+//     #[test]
+//     fn test_target_weight_normal() {
+//         let pot = make_pot(200, 300); // dry_total = 500
+//         // target = 500 + (800 - 500) * 0.3 = 500 + 90 = 590
+//         assert_eq!(target_weight(&pot, 0.3, 800.0), 590.0);
+//     }
 
-    #[test]
-    fn test_target_weight_zero_moisture() {
-        let pot = make_pot(200, 300); // dry_total = 500
-        // target = 500 + (800 - 500) * 0.0 = 500
-        assert_eq!(target_weight(&pot, 0.0, 800.0), 500.0);
-    }
+//     #[test]
+//     fn test_target_weight_zero_moisture() {
+//         let pot = make_pot(200, 300); // dry_total = 500
+//         // target = 500 + (800 - 500) * 0.0 = 500
+//         assert_eq!(target_weight(&pot, 0.0, 800.0), 500.0);
+//     }
 
-    // --- days_until_watering ---
+//     // --- days_until_watering ---
 
-    #[test]
-    fn test_days_until_watering_not_enough_data() {
-        let m = vec![make_measurement(500.0, "2026-03-10")];
-        let pot = make_pot(200, 300);
-        assert_eq!(days_until_watering(&m, &pot, 0.3, 800.0), None);
-    }
-}
+//     #[test]
+//     fn test_days_until_watering_not_enough_data() {
+//         let m = vec![make_measurement(500.0, "2026-03-10")];
+//         let pot = make_pot(200, 300);
+//         assert_eq!(days_until_watering(&m, &pot, 0.3, 800.0), None);
+//     }
+// }

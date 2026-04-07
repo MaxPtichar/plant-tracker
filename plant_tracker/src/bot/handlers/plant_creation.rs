@@ -5,7 +5,10 @@ use crate::{
     bot::{
         HandlerResult, MeasurementDialogue, MyDialogue, PlantCreationDialogue,
         dialogue::PotCreationDialog,
-        keyboards::{get_type_of_moisture, main_menu_buttons},
+        keyboards::{
+            air_circulation_keyboard, get_type_of_moisture, light_level_keyboard,
+            main_menu_buttons, plant_type_keyboard,
+        },
     },
     db_operations,
 };
@@ -42,11 +45,11 @@ pub async fn get_plant_name(bot: Bot, dialogue: MyDialogue, msg: Message) -> Han
 
             dialogue
                 .update(MeasurementDialogue::CreatingPlant(
-                    PlantCreationDialogue::WaitingForMoisture { name },
+                    PlantCreationDialogue::WaitingForPlantType { name },
                 ))
                 .await?;
-            bot.send_message(msg.chat.id, "Введите остаточный % влаги в горшке")
-                .reply_markup(get_type_of_moisture())
+            bot.send_message(msg.chat.id, "Выберите тип растения:")
+                .reply_markup(plant_type_keyboard())
                 .await?;
         }
         None => {
@@ -58,100 +61,140 @@ pub async fn get_plant_name(bot: Bot, dialogue: MyDialogue, msg: Message) -> Han
     Ok(())
 }
 
-/// **Stage 2 of 3** — reads a preset moisture value from the inline keyboard.
-///
-/// Triggered by: callback query while in `WaitingForMoisture`.
-///
-/// Two paths:
-/// - `"custom"` data  → advances to `WaitingForCustomMoisture` and asks for
-///   a free-form float.
-/// - any other value  → parses as `f32`, writes the plant to the DB, shows
-///   the main menu, and exits the dialogue.
-///
-/// Always answers the callback query at the end to dismiss the spinner.
-pub async fn get_moisture(
+pub async fn get_plant_type(
+    bot: Bot,
+    dialogue: MyDialogue,
+    q: CallbackQuery,
+    name: String,
+) -> HandlerResult {
+    if let Some(data) = q.data {
+        bot.answer_callback_query(q.id).await?;
+
+        let plant_type = match data.as_str() {
+            "Succulent" => "Succulent".to_string(),
+            "Tropical" => "Tropical".to_string(),
+            _ => "Regular".to_string(),
+        };
+
+        dialogue
+            .update(MeasurementDialogue::CreatingPlant(
+                PlantCreationDialogue::WaitingForLightLevel { name, plant_type },
+            ))
+            .await?;
+
+        let chat_id = q.message.unwrap().chat().id;
+        bot.send_message(chat_id, "Где стоит растение?🌿")
+            .reply_markup(light_level_keyboard())
+            .await?;
+    }
+    Ok(())
+}
+
+pub async fn get_light_level(
+    bot: Bot,
+    dialogue: MyDialogue,
+    q: CallbackQuery,
+    (name, plant_type): (String, String),
+) -> HandlerResult {
+    if let Some(data) = q.data {
+        bot.answer_callback_query(q.id).await?;
+
+        let light_level = match data.as_str() {
+            "window" => "window".to_string(),
+            _ => "shadow".to_string(),
+        };
+
+        dialogue
+            .update(MeasurementDialogue::CreatingPlant(
+                PlantCreationDialogue::WaitingForAirCirculation {
+                    name,
+                    plant_type,
+                    light_level,
+                },
+            ))
+            .await?;
+
+        let chat_id = q.message.unwrap().chat().id;
+        bot.send_message(
+            chat_id,
+            "Есть ли рядом с растением движение воздуха?\n\n
+🌬️ Сквозняк, открытое окно, вентилятор\n
+😶 Тихое место, воздух не движется",
+        )
+        .reply_markup(air_circulation_keyboard())
+        .await?;
+    }
+    Ok(())
+}
+
+pub async fn get_air_circ(
     bot: Bot,
     dialogue: MyDialogue,
     q: CallbackQuery,
     pool: PgPool,
-    name: String,
+    (name, plant_type, light_level): (String, String, String),
 ) -> HandlerResult {
-    let chat_id = q.message.unwrap().chat().id;
     if let Some(data) = q.data {
-        if data == "custom" {
-            dialogue
-                .update(MeasurementDialogue::CreatingPlant(
-                    PlantCreationDialogue::WaitingForCustomMoisture { name },
-                ))
-                .await?;
-            bot.send_message(chat_id, "Введите число от 0.1 до 1.0 (например, 0.25):")
-                .await?;
-        } else {
-            let moisture: f32 = data.parse().unwrap_or(0.3);
+        dbg!(&data);
 
-            let plant_id =
-                db_operations::create_new_plant(&pool, chat_id.0, &name, moisture).await?;
+        bot.answer_callback_query(q.id).await?;
+        dbg!("answered callback");
 
-            bot.send_message(chat_id, format!("🌿 Растение '{name}' добавлено!"))
-                .reply_markup(main_menu_buttons())
-                .await?;
-            bot.send_message(chat_id, "✅ Сохранено!").await?;
-            dialogue
-                .update(MeasurementDialogue::CreatingPot(
-                    PotCreationDialog::WaitingForPotWeight { plant_id },
-                ))
-                .await?;
-            bot.send_message(
-                chat_id,
-                "🪴 Теперь настроим горшок!\n\nВведите вес пустого горшка в граммах:",
-            )
+        let air_circulation = match data.as_str() {
+            "normal" => "normal".to_string(),
+            _ => "stagnant".to_string(),
+        };
+
+        dbg!(&air_circulation);
+
+        let chat_id = q.message.unwrap().chat().id;
+        dbg!(&chat_id);
+
+        let plant_id = db_operations::create_new_plant(
+            &pool,
+            chat_id.0,
+            &name,
+            &plant_type,
+            &light_level,
+            &air_circulation,
+        )
+        .await?;
+
+        dbg!(plant_id);
+
+        dialogue
+            .update(MeasurementDialogue::CreatingPot(
+                PotCreationDialog::WaitingForPotWeight { plant_id },
+            ))
             .await?;
-        }
-    }
-    bot.answer_callback_query(q.id).await?;
-    Ok(())
-}
 
-/// **Stage 3 of 3 (optional)** — collects a custom moisture value as text.
-///
-/// Triggered by: text message while in `WaitingForCustomMoisture`.
-///
-/// Accepts a decimal fraction in `[0.0, 1.0]` (commas normalised to dots).
-/// On a valid value: writes the plant to the DB, shows the main menu,
-/// and exits the dialogue.
-/// On an invalid value: replies with guidance and stays in the current state.
-pub async fn get_custom_moisture(
-    bot: Bot,
-    dialogue: MyDialogue,
-    msg: Message,
-    pool: PgPool,
-    name: String,
-) -> HandlerResult {
-    if let Some(text) = msg.text() {
-        if let Ok(val) = text.replace(",", ".").parse::<f32>() {
-            if (0.0..=1.0).contains(&val) {
-                let plant_id =
-                    db_operations::create_new_plant(&pool, msg.chat.id.0, &name, val).await?;
-                bot.send_message(msg.chat.id, "✅ Сохранено!").await?;
-                dialogue
-                    .update(MeasurementDialogue::CreatingPot(
-                        PotCreationDialog::WaitingForPotWeight { plant_id },
-                    ))
-                    .await?;
-                bot.send_message(
-                    msg.chat.id,
-                    "🪴 Теперь настроим горшок!\n\nВведите вес пустого горшка в граммах:",
-                )
-                .await?;
-            } else {
-                bot.send_message(msg.chat.id, "Введите число от 0 до 1.")
-                    .await?;
-            }
-        }
-    } else {
-        bot.send_message(msg.chat.id, "Попробуйте ввести число.")
-            .await?;
+        bot.send_message(
+            chat_id,
+            format!(
+                "🌱 Растение добавлено!\n\n\
+             📛 Название: {}\n\
+             🌿 Тип: {}\n\
+             ☀️ Освещение: {}\n\
+             💨 Циркуляция воздуха: {}\n\n\
+             Теперь настроим горшок.\n\
+             Введите вес пустого горшка в граммах:",
+                name,
+                match plant_type.as_str() {
+                    "Tropical" => "Тропическое",
+                    "Succulent" => "Суккулент",
+                    _ => "Обычное",
+                },
+                match light_level.as_str() {
+                    "window" => "У окна ☀️",
+                    _ => "В тени 🌥️",
+                },
+                match air_circulation.as_str() {
+                    "normal" => "Есть движение воздуха 🌬️",
+                    _ => "Воздух не движется 😶",
+                },
+            ),
+        )
+        .await?;
     }
-
     Ok(())
 }
