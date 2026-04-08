@@ -130,11 +130,11 @@ pub async fn get_all_plant_data(
          WHERE plant_id = p.id AND measuring_type = 'Regular'
          ORDER BY date DESC LIMIT 1) AS "current_weight",
         (SELECT weight FROM measurements 
-         WHERE plant_id = p.id AND measuring_type = 'AfterWatering' 
+         WHERE plant_id = p.id AND (measuring_type = 'AfterWatering' or measuring_type = 'AfterWateringWithFeed') 
          ORDER BY date DESC LIMIT 1) AS "last_watering_weight",
 
          (SELECT date FROM measurements 
-     WHERE plant_id = p.id AND measuring_type = 'AfterWatering' 
+     WHERE plant_id = p.id AND (measuring_type = 'AfterWatering' or measuring_type = 'AfterWateringWithFeed')
      ORDER BY date DESC LIMIT 1) AS "last_watering_date"
     FROM plants p
     JOIN pot_configs pc ON p.id = pc.plant_id
@@ -175,16 +175,15 @@ pub async fn get_all_plants_data(
          WHERE plant_id = p.id AND measuring_type = 'Regular'
          ORDER BY date DESC LIMIT 1) AS "current_weight",
         (SELECT weight FROM measurements 
-         WHERE plant_id = p.id AND measuring_type = 'AfterWatering' 
+         WHERE plant_id = p.id AND (measuring_type = 'AfterWatering' or measuring_type = 'AfterWateringWithFeed') 
          ORDER BY date DESC LIMIT 1) AS "last_watering_weight",
 
          (SELECT date FROM measurements 
-     WHERE plant_id = p.id AND measuring_type = 'AfterWatering' 
+     WHERE plant_id = p.id AND (measuring_type = 'AfterWatering' or measuring_type = 'AfterWateringWithFeed') 
      ORDER BY date DESC LIMIT 1) AS "last_watering_date"
     FROM plants p
     JOIN pot_configs pc ON p.id = pc.plant_id
-    WHERE p.user_id = $1 AND pc.is_active = true
-    LIMIT 1; 
+    WHERE p.user_id = $1 AND pc.is_active = true; 
     "#,
         user_id,
         
@@ -293,7 +292,7 @@ pub async fn recieve_two_last_measurement(
         Measurements,
         "SELECT id, plant_id, weight, date, measuring_type FROM measurements
         WHERE plant_id = $1 AND measuring_type = 'Regular'
-        ORDER BY date DESC LIMIT 2",
+        ORDER BY date DESC, id DESC LIMIT 2",
         plant_id
     )
     .fetch_all(pool)
@@ -400,7 +399,7 @@ pub async fn get_measurement_record_20(
 FROM measurements m
 LEFT JOIN plants p ON p.id = m.plant_id
 WHERE p.id = $1 AND p.user_id = $2
-ORDER BY m.date DESC
+ORDER BY m.date, m.id DESC
 LIMIT 20;",
         plant_id,
         chat_id
@@ -448,10 +447,10 @@ pub async fn get_regular_after_last_watering(
            AND date > COALESCE(
                (SELECT MAX(date) FROM measurements
                 WHERE plant_id = $1
-                AND measuring_type = 'AfterWatering'),
+                AND (measuring_type = 'AfterWatering' or measuring_type = 'AfterWateringWithFeed')),
                '1970-01-01'
            )
-         ORDER BY date DESC",
+         ORDER BY date DESC, id DESC",
         plant_id
     )
     .fetch_all(pool)
