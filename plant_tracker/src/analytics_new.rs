@@ -265,7 +265,7 @@ pub fn days_until_watering_full(
     let water_after = after_watering_weight - dry_total;
     let depleted = water_after - current_water;
     let raw_val = raw(soil_type, dry_soil_weight_g, plant_type);
-    let remaining = raw_val - depleted;
+    let remaining = current_water;
 
     // физическая модель
     let r_physical = penman_monteith(
@@ -298,7 +298,7 @@ pub fn days_until_watering_full(
         0.0
     };
 
-    Some(remaining / r_final - days_since)
+    Some(remaining / r_final)
 }
 
 /// Calculates the average evaporation rate from two consecutive
@@ -314,27 +314,17 @@ pub fn days_until_watering_full(
 /// // rate = (500 - 450) / 5 = 10.0 g/day
 /// ```
 pub fn avg_evaporation_rate(last_measurements: &[Measurements]) -> Option<f32> {
-    if last_measurements.len() < 2 { return None; }
-
-    let m_new = &last_measurements[0];
-    let m_old = &last_measurements[1];
-
-    // Вычитаем DateTime, получаем Duration
-    let duration = m_new.date - m_old.date;
-    let total_seconds = duration.num_seconds().abs() as f32;
-
-    // Если разница меньше 10 минут (600 сек) — считаем это ошибкой/дублем
-    if total_seconds < 600.0 {
+    if last_measurements.len() < 2 {
         return None;
     }
 
-    let delta_weight = (m_old.weight - m_new.weight) as f32;
-    if delta_weight <= 0.0 { return None; }
+    let (weight1, weight2) = (last_measurements[0].weight, last_measurements[1].weight);
+    let (date1, date2) = (last_measurements[0].date, last_measurements[1].date);
 
-    // (грамм / секунды) * 86400 секунд в сутках = грамм/день
-    let rate_per_day = (delta_weight / total_seconds) * 86400.0;
+    let delta_days = (date1 - date2).abs().num_days().max(1) as f32;
+    let evapuation_rate = (weight2 - weight1).abs() / delta_days;
 
-    Some(rate_per_day)
+    Some(evapuation_rate as f32)
 }
 
 #[cfg(test)]
