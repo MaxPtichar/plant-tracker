@@ -121,7 +121,7 @@ pub struct PotConfig {
 }
 
 /// A single weight measurement for a plant.
-#[derive(Debug, FromRow)]
+#[derive(Debug, FromRow, Clone)]
 pub struct Measurements {
     pub id: i64,
     pub plant_id: i64,
