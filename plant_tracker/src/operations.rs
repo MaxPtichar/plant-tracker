@@ -48,8 +48,10 @@ pub async fn transpiration_coef_calc(
     user_id: i64,
 ) -> sqlx::Result<(f32, f32)> {
     let data = db_operations::get_all_plant_data(&pool, user_id, plant_id).await?;
-    let last_measurements = db_operations::recieve_two_last_measurement(&pool, plant_id).await?;
-    
+    let last_measurements = db_operations::get_regular_after_last_watering(&pool, plant_id).await?;
+    dbg!(plant_id);
+dbg!(&last_measurements.len());
+dbg!(&last_measurements);
     let PlantFullContext {
         plant_type,
         light_level,
@@ -57,14 +59,17 @@ pub async fn transpiration_coef_calc(
         transpiration_coef,
         pot_diameter_cm,
         last_watering_weight,
-        current_weight,
+
         avg_r,
         last_watering_date,
         ..
     } = &data;
 if last_measurements.len() < 2 {
-        return Ok((*transpiration_coef, avg_r.unwrap_or(0.0)));
+        return Ok((*transpiration_coef, avg_r.unwrap_or(0.1)));
     }
+
+    let last_two: Vec<_> = last_measurements.iter().take(2).cloned().collect();
+
     let tem_c = get_outdoor_temp();
 
     let penman = penman_monteith(
@@ -73,9 +78,11 @@ if last_measurements.len() < 2 {
         light_level,
         air_circulation,
         pot_diameter_cm.clone(),
-        transpiration_coef.clone(),
+        1.0,
     );
-    let new_avg_r = match avg_evaporation_rate(&last_measurements) {
+    
+    
+    let new_avg_r = match avg_evaporation_rate(&last_two) {
         Some(real_rate) => real_rate,
         None => match avg_r {
             &Some(hist_avg) if hist_avg > 0.0 => hist_avg,
@@ -83,28 +90,47 @@ if last_measurements.len() < 2 {
         },
     };
 
-    let (last_watered, current, last_watering_date) =
-        match (last_watering_weight, current_weight, last_watering_date) {
-            (Some(w_last), Some(w_curr), Some(d_last)) => (*w_last, *w_curr, *d_last),
+    if penman <= 0.0001 {
+    return Ok((*transpiration_coef, new_avg_r));
+}
+
+    let current = last_measurements.first().unwrap().weight;
+
+    let (last_watered, last_watering_date) =
+        match (last_watering_weight, last_watering_date) {
+            (Some(w_last), Some(d_last)) => (*w_last, *d_last),
             _ => return Ok((*transpiration_coef, new_avg_r)),
         };
+    
+    let water_loss = last_watered - current;
+
+if water_loss <= 0.0 {
+    return Ok((*transpiration_coef, new_avg_r));
+}
+
 
     let duratiton_days = (chrono::Local::now().date_naive() - last_watering_date)
         .num_days()
         .abs() as f32;
 
+
+    println!("penman: {}", penman);
+println!("water_loss: {}", last_watered - current);
+println!("days: {}", duratiton_days);
+
     if duratiton_days <= 0.0 {
-        return Ok((*transpiration_coef, avg_r.unwrap_or(0.0)));
+        return Ok((*transpiration_coef, avg_r.unwrap_or(0.1)));
     }
 
-    let new_transpiration_coef = (last_watered - current) / (penman * duratiton_days);
+    let new_transpiration_coef = ((last_watered - current) / (penman * duratiton_days)).clamp(0.1, 5.0);
 
     Ok((new_transpiration_coef, new_avg_r))
 }
 
 pub async fn update_avg_cycle(plant_id: i64, pool: &PgPool, user_id: i64) -> sqlx::Result<()> {
-    let (new_avg_r, new_transpiration_coef) =
-        transpiration_coef_calc(&pool, plant_id, user_id).await?;
+
+    let (new_transpiration_coef, new_avg_r) =
+    transpiration_coef_calc(&pool, plant_id, user_id).await?;
 
     println!(
         "Обновление цикла для растения {}: New Kc: {:.2}, New Avg R: {:.2}",
