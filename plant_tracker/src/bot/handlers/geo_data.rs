@@ -27,66 +27,27 @@ pub async fn recieve_geo(
         db_operations::create_geo(&pool, lat, lon, msg.chat.id.0).await?;
 
         bot.send_message(
-            msg.chat.id, 
-            format!("Спасибо! Координаты получены: {}, {}. Теперь я знаю погоду у вас за окном.", lat, lon) )
-          .reply_markup(ReplyMarkup::kb_remove())
+            msg.chat.id,
+            format!(
+                "Спасибо! Координаты получены: {}, {}. Теперь я знаю погоду у вас за окном.",
+                lat, lon
+            ),
+        )
+        .reply_markup(ReplyMarkup::kb_remove())
         .await?;
 
-        bot.send_message(
-            msg.chat.id, 
-            format!("Выберете действие") )
-          .reply_markup(main_menu_buttons())
-        .await?;
+        bot.send_message(msg.chat.id, format!("Выберете действие"))
+            .reply_markup(main_menu_buttons())
+            .await?;
 
         dialogue.exit().await?;
-        
+    } else {
+        bot.send_message(
+            msg.chat.id,
+            "Пожалуйста, используйте кнопку для отправки локации.",
+        )
+        .await?;
     }
-    else {
-        bot.send_message(msg.chat.id, "Пожалуйста, используйте кнопку для отправки локации.").await?;
-    }
 
-        
-
-
-    Ok(())
-}
-
-/// Handles the user's confirmation or cancellation of plant deletion.
-///
-/// Called when the dialogue is in [`MeasurementDialogue::WaitingForConfirmDelete`].
-///
-/// # Transitions
-/// - `"ConfirmDelete"` — deletes the plant from the database, exits the dialogue
-/// - `"MyPlants"` — cancels deletion, exits the dialogue
-///
-/// After both actions returns the user to the "My Plants" menu.
-pub async fn receive_answer(
-    bot: Bot,
-    dialogue: MyDialogue,
-    q: CallbackQuery,
-    plant_id: i64,
-    pool: PgPool,
-) -> HandlerResult {
-    if let Some(data) = q.data {
-        bot.answer_callback_query(q.id).await?;
-        let chat_id = q.message.unwrap().chat().id;
-        match data.as_str() {
-            "ConfirmDelete" => {
-                db_operations::delete_plant(&pool, plant_id).await?;
-                bot.send_message(chat_id, "Растение удалено")
-                    .reply_markup(my_plants_menu())
-                    .await?;
-                dialogue.exit().await?;
-            }
-
-            "MyPlants" => {
-                bot.send_message(chat_id, "Отмена удаления")
-                    .reply_markup(my_plants_menu())
-                    .await?;
-                dialogue.exit().await?;
-            }
-            _ => {}
-        }
-    };
     Ok(())
 }

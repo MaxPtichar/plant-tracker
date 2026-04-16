@@ -2,7 +2,12 @@ use std::clone;
 
 use sqlx::PgPool;
 
-use crate::{analytics::days_until_watering, analytics_new::{days_until_watering_full, get_outdoor_temp}, db_operations, models::{PlantFullContext, watering_status}};
+use crate::{
+    analytics::days_until_watering,
+    analytics_new::{days_until_watering_full, get_outdoor_temp},
+    db_operations,
+    models::{PlantFullContext, watering_status},
+};
 
 /// Returns a formatted watering status string for all user's plants.
 ///
@@ -22,9 +27,8 @@ pub async fn get_all_plants_status(pool: &PgPool, chat_id: i64) -> sqlx::Result<
         return Ok(format!("Пока еще нет ни одного растения🌱"));
     }
 
-    
     let mut result: Vec<String> = Vec::new();
-    let temp_outdoor= get_outdoor_temp();
+    let temp_outdoor = get_outdoor_temp();
 
     for plant in &plants {
         let PlantFullContext {
@@ -34,81 +38,60 @@ pub async fn get_all_plants_status(pool: &PgPool, chat_id: i64) -> sqlx::Result<
             dry_soil_weight,
             soil_type,
             plant_type,
-            light_level, 
-            air_circulation, 
-            pot_diameter_cm, 
-            transpiration_coef, 
-            avg_r, 
+            light_level,
+            air_circulation,
+            pot_diameter_cm,
+            transpiration_coef,
+            avg_r,
             cycles_count,
             plants_name,
             plant_id,
-
             ..
-
-        } =&plant;
+        } = &plant;
         dbg!(plants_name, last_watering_weight, avg_r);
         let dry_total = (pot_weight + dry_soil_weight) as f32;
         let dry_soil_weight_g = *dry_soil_weight as f32;
 
-         let regular_measurements = db_operations::get_regular_after_last_watering(pool, *plant_id).await?;
-         dbg!(&regular_measurements);
-        let regular_measurements: Vec<_> = regular_measurements
-    .into_iter()
-    .take(2)
-    .collect();
+        let regular_measurements =
+            db_operations::get_regular_after_last_watering(pool, *plant_id).await?;
+        dbg!(&regular_measurements);
+        let regular_measurements: Vec<_> = regular_measurements.into_iter().take(2).collect();
         dbg!((last_watering_weight, avg_r));
 
-        let ( after_watering_weight, avg_r) =
-        match ( last_watering_weight, avg_r)  {
-            
-            ( &Some(l_watering), &Some(r)) => ( l_watering.clone(), r.clone()),
-            _=>  { result.push(format!("{plants_name} - недостаточно данных для расчета").to_string()); continue;}
-
-            
-            
-        }; 
-        
-
-
-        let days = days_until_watering_full(
-            &regular_measurements, 
-            after_watering_weight, 
-            dry_total, soil_type, 
-            dry_soil_weight_g, 
-            plant_type, 
-            light_level, 
-            air_circulation, 
-            pot_diameter_cm.clone(), 
-            transpiration_coef.clone(), 
-            avg_r, 
-            cycles_count.clone(), 
-            temp_outdoor); 
-
-
-        let line = match days {
-    
-                    Some(d) => format!("🌱 {} — {}",plants_name, watering_status(d)),
-                    _ => format!("🌱 {} — нет данных", plants_name),
-                
-            
-
+        let (after_watering_weight, avg_r) = match (last_watering_weight, avg_r) {
+            (&Some(l_watering), &Some(r)) => (l_watering.clone(), r.clone()),
+            _ => {
+                result.push(format!("{plants_name} - недостаточно данных для расчета").to_string());
+                continue;
+            }
         };
 
+        let days = days_until_watering_full(
+            &regular_measurements,
+            after_watering_weight,
+            dry_total,
+            soil_type,
+            dry_soil_weight_g,
+            plant_type,
+            light_level,
+            air_circulation,
+            pot_diameter_cm.clone(),
+            transpiration_coef.clone(),
+            avg_r,
+            cycles_count.clone(),
+            temp_outdoor,
+        );
+
+        let line = match days {
+            Some(d) => format!("🌱 {} — {}", plants_name, watering_status(d)),
+            _ => format!("🌱 {} — нет данных", plants_name),
+        };
 
         result.push(line);
-
     }
 
-     Ok(result.join("\n"))
-
+    Ok(result.join("\n"))
 }
-
-
-
-
-
-
-
 
 // pub async fn get_all_plants_status_old(pool: &PgPool, chat_id: i64) -> sqlx::Result<String> {
 //     let plants = db_operations::get_user_plants(&pool, chat_id).await?;

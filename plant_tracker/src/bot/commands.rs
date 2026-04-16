@@ -99,7 +99,6 @@ pub async fn handle_command(
                 .reply_markup(plant_keyboard(&plants, "Start"))
                 .await?;
         }
-        
 
         Command::LastFeed => {
             let plants = db_operations::recieve_plants_with_last_feed(&pool, msg.chat.id.0).await?;
@@ -109,10 +108,12 @@ pub async fn handle_command(
 
         Command::SetLocation => {
             dialogue.update(MeasurementDialogue::WaitLocation).await?;
-            bot.send_message(msg.chat.id, "Геолокация нужна для определения температуры в вашем городе!")
+            bot.send_message(
+                msg.chat.id,
+                "Геолокация нужна для определения температуры в вашем городе!",
+            )
             .reply_markup(geo_button())
             .await?;
-
         }
 
         Command::Cancel => {
@@ -156,9 +157,6 @@ pub async fn handle_menu_buttons(
         "Start" => {
             db_operations::create_user(&pool, chat_id_i64, username).await?;
 
-            
-            
-            
             bot.send_message(chat_id, "Выбери действие: ")
                 .reply_markup(main_menu_buttons())
                 .await?;

@@ -169,7 +169,6 @@ fn measurement_branches()
             }]
             .endpoint(receive_date),
         )
-        
 }
 
 pub fn is_menu_callback(q: CallbackQuery) -> bool {

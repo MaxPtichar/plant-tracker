@@ -3,7 +3,9 @@ use crate::constants::{REGULAR_PLANT, TROPICAL};
 
 use crate::{constants::SUKKULENT, models::Plant};
 
-use teloxide::types::{ButtonRequest, InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, KeyboardMarkup};
+use teloxide::types::{
+    ButtonRequest, InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, KeyboardMarkup,
+};
 
 /// Returns a keyboard with a single "Back to main menu" button.
 /// Used as a fallback navigation in most dialogues.
@@ -83,7 +85,6 @@ pub fn my_plants_menu() -> InlineKeyboardMarkup {
             "🪏 Удалить растение",
             "DeletePlant",
         )],
-        
         vec![InlineKeyboardButton::callback("↩︎ Назад", "Start")],
     ])
 }
@@ -209,10 +210,12 @@ pub fn soil_type_keyboard() -> InlineKeyboardMarkup {
 }
 
 pub fn geo_button() -> KeyboardMarkup {
-    let keyboard = KeyboardButton { text: "📍 Отправить локацию".to_string(), 
-    request: Some(ButtonRequest::Location)};
+    let keyboard = KeyboardButton {
+        text: "📍 Отправить локацию".to_string(),
+        request: Some(ButtonRequest::Location),
+    };
     KeyboardMarkup::default()
-    .append_row(vec![keyboard])
-    .resize_keyboard()
-    .one_time_keyboard()
+        .append_row(vec![keyboard])
+        .resize_keyboard()
+        .one_time_keyboard()
 }
