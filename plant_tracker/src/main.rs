@@ -1,10 +1,10 @@
 mod analytics;
 mod bot;
 mod constants;
-mod operations;
-
 mod db_operations;
 mod models;
+mod operations;
+mod weather;
 
 mod analytics_new;
 
