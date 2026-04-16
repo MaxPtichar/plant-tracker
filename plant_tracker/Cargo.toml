@@ -11,4 +11,4 @@ sqlx = { version = "0.8", features = [ "runtime-tokio", "postgres", "macros", "c
 teloxide = { version = "0.17.0", features = ["macros"] }
 tokio = { version = "1", features = ["full"] }
 dotenvy = "0.15"
-
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }

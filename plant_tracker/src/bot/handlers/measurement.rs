@@ -235,14 +235,15 @@ pub async fn receive_custom_date (
 
 ) -> HandlerResult {
     if let Some(text) = msg.text() {
-        if let Ok(date) = NaiveDate::parse_from_str(text, "%d.%m.%Y") {
+        if let Ok(date) = NaiveDate::parse_from_str(text, "%d.%m.%Y")
+        .or_else(|_| NaiveDate::parse_from_str(text, "%d.%m.%y")) {
             return Ok(finalize_measurement(bot, dialogue, msg.chat.id, pool, (plant_id, weight, type_, date)).await?);
 
         }
 
     }
 
-    bot.send_message(msg.chat.id, "Неверный формат. Нужно ДД.ММ.ГГГГ (например 06.04.2026):").await?;
+    bot.send_message(msg.chat.id, "Неверный формат. Нужно ДД.ММ.ГГГГ или ДД.ММ.ГГ (например 06.04.2026 или 06.04.26):").await?;
     Ok(())
 
 

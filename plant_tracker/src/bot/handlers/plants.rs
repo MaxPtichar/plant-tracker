@@ -51,6 +51,7 @@ pub async fn get_all_plants_status(pool: &PgPool, chat_id: i64) -> sqlx::Result<
         let dry_soil_weight_g = *dry_soil_weight as f32;
 
          let regular_measurements = db_operations::get_regular_after_last_watering(pool, *plant_id).await?;
+         dbg!(&regular_measurements);
         let regular_measurements: Vec<_> = regular_measurements
     .into_iter()
     .take(2)

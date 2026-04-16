@@ -23,6 +23,8 @@ pub enum MeasurementDialogue {
     WaitingForPlant,
     MyPlants,
 
+    WaitLocation, 
+
     /// Waiting for the user to select a plant to view measurement history.
     WaitingForPlantRecord,
 

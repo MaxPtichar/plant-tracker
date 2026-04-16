@@ -7,6 +7,7 @@ use crate::bot::callbacks::cancel_callback;
 use crate::bot::commands::{handle_command, handle_menu_buttons};
 use crate::bot::dialogue::PotCreationDialog;
 use crate::bot::handlers::delete_plants::{receive_answer, receive_plant_for_delete};
+use crate::bot::handlers::geo_data::recieve_geo;
 use crate::bot::handlers::measurement::{receive_custom_date, receive_plant};
 use crate::bot::handlers::measurements_record::receive_plant_for_record;
 use crate::bot::handlers::plant_creation::{
@@ -48,6 +49,7 @@ pub fn message_branches()
         )
         .branch(plant_creation_message_branches())
         .branch(pot_creation_message_branches())
+        .branch(dptree::case![MeasurementDialogue::WaitLocation].endpoint(recieve_geo))
 }
 
 fn plant_creation_message_branches()

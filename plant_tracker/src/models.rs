@@ -62,6 +62,14 @@ pub struct User {
     pub created_at: DateTime<Utc>,
 }
 
+/// Telegram user's geolocation. Need for weather API.
+#[derive(Debug, FromRow)]
+pub struct UserGeo {
+    pub latitude: Option<f64>, 
+    pub longitude: Option<f64>
+
+}
+
 #[derive(Debug, FromRow)]
 pub struct Plant {
     pub id: i64,

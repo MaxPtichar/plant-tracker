@@ -1,6 +1,6 @@
 use crate::models::{
     Measurements, Plant, PlantDetails, PlantFullContext, PlantMeasurementsHistory,
-    PlantWithLastFeedWatering, PotConfig, User,
+    PlantWithLastFeedWatering, PotConfig, User, UserGeo,
 };
 use chrono::NaiveDate;
 use sqlx::PgPool;
@@ -129,9 +129,11 @@ pub async fn get_all_plant_data(
         (SELECT weight FROM measurements 
          WHERE plant_id = p.id AND measuring_type = 'Regular'
          ORDER BY date DESC LIMIT 1) AS "current_weight",
-        (SELECT weight FROM measurements 
-         WHERE plant_id = p.id AND (measuring_type = 'AfterWatering' or measuring_type = 'AfterWateringWithFeed') 
-         ORDER BY date DESC LIMIT 1) AS "last_watering_weight",
+         
+       (SELECT weight FROM measurements 
+ WHERE plant_id = p.id 
+   AND (measuring_type = 'AfterWatering' OR measuring_type = 'AfterWateringWithFeed')
+ ORDER BY date DESC LIMIT 1) AS "last_watering_weight",
 
          (SELECT date FROM measurements 
      WHERE plant_id = p.id AND (measuring_type = 'AfterWatering' or measuring_type = 'AfterWateringWithFeed')
@@ -175,8 +177,9 @@ pub async fn get_all_plants_data(
          WHERE plant_id = p.id AND measuring_type = 'Regular'
          ORDER BY date DESC LIMIT 1) AS "current_weight",
         (SELECT weight FROM measurements 
-         WHERE plant_id = p.id AND (measuring_type = 'AfterWatering' or measuring_type = 'AfterWateringWithFeed') 
-         ORDER BY date DESC LIMIT 1) AS "last_watering_weight",
+ WHERE plant_id = p.id 
+   AND (measuring_type = 'AfterWatering' OR measuring_type = 'AfterWateringWithFeed')
+ ORDER BY date DESC LIMIT 1) AS "last_watering_weight",
 
          (SELECT date FROM measurements 
      WHERE plant_id = p.id AND (measuring_type = 'AfterWatering' or measuring_type = 'AfterWateringWithFeed') 
@@ -260,19 +263,6 @@ pub async fn get_last_watering_weight(pool: &PgPool, plant_id: i64) -> sqlx::Res
     let res = sqlx::query_scalar!(
         "SELECT weight FROM measurements
         WHERE plant_id = $1 AND measuring_type = 'AfterWatering'
-        ORDER BY date DESC LIMIT 1",
-        plant_id
-    )
-    .fetch_optional(pool)
-    .await?;
-
-    Ok(res)
-}
-
-pub async fn get_last_regular_weight(pool: &PgPool, plant_id: i64) -> sqlx::Result<Option<f32>> {
-    let res = sqlx::query_scalar!(
-        "SELECT weight FROM measurements
-        WHERE plant_id = $1 AND measuring_type = 'Regular'
         ORDER BY date DESC LIMIT 1",
         plant_id
     )
@@ -441,18 +431,49 @@ pub async fn get_regular_after_last_watering(
     sqlx::query_as!(
         Measurements,
         "SELECT id, plant_id, weight, date, measuring_type
-         FROM measurements
-         WHERE plant_id = $1
-           AND measuring_type = 'Regular'
-           AND date > COALESCE(
-               (SELECT MAX(date) FROM measurements
-                WHERE plant_id = $1
-                AND (measuring_type = 'AfterWatering' or measuring_type = 'AfterWateringWithFeed')),
-               '1970-01-01'
-           )
-         ORDER BY date DESC, id DESC",
+FROM measurements
+WHERE plant_id = $1
+  AND measuring_type = 'Regular'
+  AND date > COALESCE(
+      (SELECT MAX(date) FROM measurements
+       WHERE plant_id = $1
+         AND (measuring_type = 'AfterWatering'
+              OR measuring_type = 'AfterWateringWithFeed')),
+      '1970-01-01'
+  )
+ORDER BY date DESC, id DESC",
         plant_id
     )
     .fetch_all(pool)
     .await
+}
+
+
+
+
+pub async fn get_geo_data(pool: &PgPool, user_id: i64) -> sqlx::Result<Option<UserGeo>> {
+    let res = sqlx::query_as!(UserGeo, 
+        "SELECT latitude, longitude
+        FROM users
+        WHERE id = $1",
+        user_id)
+    .fetch_optional(pool)
+    .await?;
+
+    Ok(res)
+}
+
+
+pub async fn create_geo(pool: &PgPool,latitude: f64, longitude: f64, user_id: i64) -> sqlx::Result<()> {
+    sqlx::query!(
+        "UPDATE users SET
+        latitude = $1, 
+        longitude = $2 
+        WHERE id = $3",
+        latitude, longitude, user_id)
+    .execute(pool)
+    .await?;
+    Ok(())
+
+
 }

@@ -95,18 +95,18 @@ pub const MAD_TROPICAL: f32 = 0.30;
 pub const MAD_REGULAR: f32 = 0.50;
 
 /// Fraction of TAW that can be depleted before watering for succulents.
-/// Drought-tolerant — can lose up to 75% of available water.
-pub const MAD_SUCCULENT: f32 = 0.75;
+/// Drought-tolerant — can lose up to 90% of available water.
+pub const MAD_SUCCULENT: f32 = 0.90;
 
 // --- Параметры грунта (Field Capacity / Permanent Wilting Point), g/l ---
 
 /// Field Capacity for universal potting mix, g of water per liter of soil
-pub const FC_UNIVERSAL: f32 = 300.0;
+pub const FC_UNIVERSAL: f32 = 450.0;
 /// Permanent Wilting Point for universal potting mix, g/l
 pub const PWP_UNIVERSAL: f32 = 100.0;
 
 /// Field Capacity for succulent/cactus mix (coarse, fast-draining), g/l
-pub const FC_SUCCULENT: f32 = 150.0;
+pub const FC_SUCCULENT: f32 = 250.0;
 /// Permanent Wilting Point for succulent/cactus mix, g/l
 pub const PWP_SUCCULENT: f32 = 50.0;
 

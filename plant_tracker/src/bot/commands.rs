@@ -3,7 +3,7 @@ use teloxide::prelude::*;
 use teloxide::utils::command::{self, BotCommands};
 
 use crate::bot::handlers::plants::{get_all_plants_status, get_list_of_all_plants};
-use crate::bot::keyboards::{back_to_my_plants, my_plants_menu};
+use crate::bot::keyboards::{back_to_my_plants, geo_button, my_plants_menu};
 use crate::bot::keyboards::{main_menu_buttons, plant_keyboard};
 
 use crate::bot::dialogue::PotCreationDialog;
@@ -28,6 +28,8 @@ pub enum Command {
     Addmeasurement,
     #[command(description = "Последняя прикормка")]
     LastFeed,
+    #[command(description = "Установить геолокацию")]
+    SetLocation,
     #[command(description = "Отменить действие")]
     Cancel,
 }
@@ -40,6 +42,7 @@ pub enum CallbackCommand {
     CreatePlant,
     PlantList,
     DeletePlant,
+    SetGeo,
 }
 
 /// Handles bot commands sent via `/command` syntax.
@@ -96,11 +99,20 @@ pub async fn handle_command(
                 .reply_markup(plant_keyboard(&plants, "Start"))
                 .await?;
         }
+        
 
         Command::LastFeed => {
             let plants = db_operations::recieve_plants_with_last_feed(&pool, msg.chat.id.0).await?;
             bot.send_message(msg.chat.id, format_last_feed(&plants))
                 .await?;
+        }
+
+        Command::SetLocation => {
+            dialogue.update(MeasurementDialogue::WaitLocation).await?;
+            bot.send_message(msg.chat.id, "Геолокация нужна для определения температуры в вашем городе!")
+            .reply_markup(geo_button())
+            .await?;
+
         }
 
         Command::Cancel => {
@@ -143,6 +155,10 @@ pub async fn handle_menu_buttons(
     match data.as_str() {
         "Start" => {
             db_operations::create_user(&pool, chat_id_i64, username).await?;
+
+            
+            
+            
             bot.send_message(chat_id, "Выбери действие: ")
                 .reply_markup(main_menu_buttons())
                 .await?;
