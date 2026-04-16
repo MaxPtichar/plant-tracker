@@ -1,4 +1,7 @@
 use teloxide::types::Me;
+use std::sync::atomic::{AtomicU32, Ordering};
+
+static OUT_DOOR_TEMP_BITS: AtomicU32 = AtomicU32::new(0);
 
 use crate::{
     constants::{
@@ -12,8 +15,13 @@ use crate::{
 };
 
 //заглушка, нужен api для погоды потом
+pub async fn set_outdoor_temp(temp: f32) {
+    OUT_DOOR_TEMP_BITS.store(temp.to_bits(), Ordering::Relaxed);
+}
+
 pub fn get_outdoor_temp() -> f32 {
-    14.0
+    println!("{}", f32::from_bits(OUT_DOOR_TEMP_BITS.load(Ordering::Relaxed)));
+    f32::from_bits(OUT_DOOR_TEMP_BITS.load(Ordering::Relaxed))
 }
 
 /// Calculates saturated vapour pressure (kPa) using Antoine equation
@@ -304,7 +312,6 @@ pub fn days_until_watering_full(
     }
     dbg!(remaining, r_final, days_since);
     Some(remaining / r_final - days_since)
-    
 }
 
 /// Calculates the average evaporation rate from two consecutive
@@ -509,8 +516,6 @@ mod test {
         let taw_succulent = taw("succulent", 1.5);
         assert!(taw_tropical > taw_succulent);
     }
-
-  
 
     #[test]
     fn test_raw_grows_with_volume() {
