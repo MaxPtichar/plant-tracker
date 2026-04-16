@@ -1,6 +1,6 @@
 use crate::models::{
     Measurements, Plant, PlantDetails, PlantFullContext, PlantMeasurementsHistory,
-    PlantWithLastFeedWatering, PotConfig, User, UserGeo,
+    PlantWithLastFeedWatering, PotConfig, User, UserGeo, UsersGeo,
 };
 use chrono::NaiveDate;
 use sqlx::PgPool;
@@ -149,7 +149,6 @@ pub async fn get_all_plant_data(
     .fetch_one(pool)
     .await
 }
-
 
 //return data for all plants that user have
 pub async fn get_all_plants_data(
@@ -448,15 +447,14 @@ ORDER BY date DESC, id DESC",
     .await
 }
 
-
-
-
 pub async fn get_geo_data(pool: &PgPool, user_id: i64) -> sqlx::Result<Option<UserGeo>> {
-    let res = sqlx::query_as!(UserGeo, 
+    let res = sqlx::query_as!(
+        UserGeo,
         "SELECT latitude, longitude
         FROM users
         WHERE id = $1",
-        user_id)
+        user_id
+    )
     .fetch_optional(pool)
     .await?;
 
@@ -464,16 +462,31 @@ pub async fn get_geo_data(pool: &PgPool, user_id: i64) -> sqlx::Result<Option<Us
 }
 
 
-pub async fn create_geo(pool: &PgPool,latitude: f64, longitude: f64, user_id: i64) -> sqlx::Result<()> {
+pub async fn get_all_users_geo(pool: &PgPool) -> sqlx::Result<Vec<UsersGeo>> {
+    let users_with_geo = sqlx::query_as!(UsersGeo, 
+            "SELECT id, latitude, longitude FROM users WHERE latitude IS NOT NULL"
+        )
+        .fetch_all(pool)
+        .await?;
+    Ok(users_with_geo)
+}
+
+pub async fn create_geo(
+    pool: &PgPool,
+    latitude: f64,
+    longitude: f64,
+    user_id: i64,
+) -> sqlx::Result<()> {
     sqlx::query!(
         "UPDATE users SET
         latitude = $1, 
         longitude = $2 
         WHERE id = $3",
-        latitude, longitude, user_id)
+        latitude,
+        longitude,
+        user_id
+    )
     .execute(pool)
     .await?;
     Ok(())
-
-
 }
