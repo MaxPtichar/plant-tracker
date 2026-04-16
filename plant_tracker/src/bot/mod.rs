@@ -29,6 +29,7 @@ use crate::bot::handlers::pot_creation::{
 use crate::bot::handlers::{receive_date, receive_type, receive_weight};
 use crate::bot::notification::chat_notification;
 use crate::bot::routing::{callback_branches, message_branches};
+use crate::weather::get_weather_scheldue;
 use chrono::{Local, Timelike};
 use teloxide::prelude::*;
 
@@ -74,7 +75,10 @@ pub async fn plant_bot() {
 
     let bot_clone = bot.clone();
     let pool_clone = pool.clone();
-    tokio::spawn(notification_loop(bot_clone, pool_clone));
+
+    tokio::spawn(notification_loop(bot_clone.clone(), pool_clone.clone()));
+    tokio::spawn(get_weather_scheldue(pool_clone.clone()));
+
 
     bot.set_my_commands(commands::Command::bot_commands())
         .await
@@ -110,3 +114,5 @@ async fn notification_loop(bot_clone: Bot, pool_clone: PgPool) {
         tokio::time::sleep(Duration::from_secs(30)).await;
     }
 }
+
+
