@@ -1,6 +1,7 @@
 use core::fmt;
 
 use chrono::{DateTime, NaiveDate, Utc};
+use serde::Deserialize;
 use sqlx::FromRow;
 /// Measurement type stored in the `measurements` table.
 ///
@@ -65,9 +66,15 @@ pub struct User {
 /// Telegram user's geolocation. Need for weather API.
 #[derive(Debug, FromRow)]
 pub struct UserGeo {
-    pub latitude: Option<f64>, 
-    pub longitude: Option<f64>
+    pub latitude: Option<f64>,
+    pub longitude: Option<f64>,
+}
 
+#[derive(Debug, FromRow)]
+pub struct UsersGeo {
+    pub id: i64,
+    pub latitude: Option<f64>,
+    pub longitude: Option<f64>,
 }
 
 #[derive(Debug, FromRow)]
@@ -276,4 +283,13 @@ pub struct PlantFullContext {
     pub current_weight: Option<f32>,
     pub last_watering_weight: Option<f32>,
     pub last_watering_date: Option<NaiveDate>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Temperature {
+    pub temperature_2m: f32,
+}
+#[derive(Debug, Deserialize)]
+pub struct WeatherResponse {
+    pub current: Temperature,
 }
