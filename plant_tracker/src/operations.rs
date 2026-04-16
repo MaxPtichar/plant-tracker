@@ -2,8 +2,8 @@ use sqlx::{PgPool, pool};
 
 use crate::analytics::days_from_last_feed;
 use crate::analytics_new::{avg_evaporation_rate, get_outdoor_temp, penman_monteith, raw};
-use crate::db_operations;
-use crate::models::{Measurements, PlantFullContext, PlantWithLastFeedWatering};
+use crate::db_operations::{self, get_geo_data};
+use crate::models::{Measurements, PlantFullContext, PlantWithLastFeedWatering, UserGeo, WeatherResponse};
 
 /// Formats a list of plants with their last feed-watering date.
 ///
@@ -72,6 +72,8 @@ pub async fn transpiration_coef_calc(
 
     let last_two: Vec<_> = last_measurements.iter().take(2).cloned().collect();
     let tem_c = get_outdoor_temp();
+
+    dbg!(&tem_c);
 
     // 1. Базовый расход по Пенману-Монтейту
     let penman = penman_monteith(
@@ -158,3 +160,10 @@ pub async fn update_avg_cycle(plant_id: i64, pool: &PgPool, user_id: i64) -> sql
 
     Ok(())
 }
+
+
+
+
+
+
+
