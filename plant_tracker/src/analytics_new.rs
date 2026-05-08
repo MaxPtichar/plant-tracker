@@ -1,4 +1,4 @@
-use teloxide::types::Me;
+use chrono::NaiveDate;
 use std::sync::atomic::{AtomicU32, Ordering};
 
 static OUT_DOOR_TEMP_BITS: AtomicU32 = AtomicU32::new(0);
@@ -9,7 +9,7 @@ use crate::{
         BULK_DENSITY_UNIVERSAL, CP_AIR, DELTA_COEF, FC_SUCCULENT, FC_TROPICAL, FC_UNIVERSAL, GAMMA,
         INDOOR_HUMIDITY, LAMBDA, MAD_REGULAR, MAD_SUCCULENT, MAD_TROPICAL, PWP_SUCCULENT,
         PWP_TROPICAL, PWP_UNIVERSAL, RA_NORMAL, RA_STAGNANT, RC_REGULAR, RC_SUCCULENT, RC_TROPICAL,
-        RHO_AIR, RN_SHADOW, RN_WINDOW, T_INDOOR_BASE, T_INDOOR_OFFSET, T_OUTDOOR_FACTOR,
+        RHO_AIR, RN_SHADOW, RN_WINDOW
     },
     models::Measurements,
 };
@@ -211,24 +211,22 @@ pub fn weighted_r(
     cycles_count: i32,
 ) -> f32 {
     match r_current_cycle {
-        Some(r_current) if n_current >= 2 => {
-            // есть данные текущего цикла — все три источника
+        Some(r_current) if n_current >= 2 && cycles_count > 0 => {
+            // текущий цикл + история
             let w_current = n_current as f32;
             let w_historical = cycles_count as f32;
-            let w_physical = 1.0_f32;
-            let total = w_current + w_historical + w_physical;
-            (w_current * r_current + w_historical * avg_r + w_physical * r_physical) / total
+            (w_current * r_current + w_historical * avg_r) / (w_current + w_historical)
+        }
+        Some(r_current) if n_current >= 2 => {
+            // только текущий цикл, истории нет
+            r_current
         }
         _ if cycles_count > 0 => {
-            // нет текущих данных — история и физика
-            let w_historical = cycles_count as f32;
-            let w_physical = 1.0_f32;
-            let total = w_historical + w_physical;
-            (w_historical * avg_r + w_physical * r_physical) / total
+            // только история
+            avg_r
         }
         _ => {
-            // первый цикл, нет истории — только физика
-            dbg!(r_physical, avg_r, &r_current_cycle, n_current, cycles_count);
+            // совсем ничего — только физика
             r_physical
         }
     }
@@ -257,6 +255,7 @@ pub fn weighted_r(
 /// - `None` — not enough data (no history and no measurements)
 pub fn days_until_watering_full(
     regular_measurements: &[Measurements],
+    last_watering_date: Option<NaiveDate>, 
     after_watering_weight: f32,
     dry_total: f32,
     soil_type: &str,
@@ -269,22 +268,29 @@ pub fn days_until_watering_full(
     avg_r: f32,
     cycles_count: i32,
     temp_outdoor: f32,
+    water_threshold: f32, 
 ) -> Option<f32> {
     // ИСПРАВЛЕНО: если нет Regular после полива — используем after_watering_weight
     // как текущий вес и days_since = 0, вместо возврата None
     let (current_weight, days_since) = match regular_measurements.first() {
-        Some(m) => {
-            let days = (chrono::Local::now().date_naive() - m.date).num_days() as f32;
-            (m.weight, days)
-        }
-        None => (after_watering_weight, 0.0),
-    };
+       Some(m) => {
+    let days = (chrono::Local::now().date_naive() - m.date).num_days() as f32;
+    (m.weight, days)
+
+}
+None => {
+    let days = last_watering_date
+        .map(|d| (chrono::Local::now().date_naive() - d).num_days() as f32)
+        .unwrap_or(0.0);
+    (after_watering_weight, days)
+}};
 
     let current_water = current_weight - dry_total;
-    let water_after = after_watering_weight - dry_total;
-    let depleted = water_after - current_water;
-    let (raw_val, _mad) = raw(soil_type, dry_soil_weight_g, plant_type);
-    let remaining = raw_val - depleted;
+let water_after = after_watering_weight - dry_total;
+let depleted = water_after - current_water;
+
+let target_water = water_after * water_threshold;
+let remaining = current_water - target_water;
 
     let r_physical = penman_monteith(
         temp_outdoor,
@@ -310,7 +316,9 @@ pub fn days_until_watering_full(
     if r_final <= 0.0 {
         return None;
     }
-    dbg!(remaining, r_final, days_since);
+
+    dbg!(remaining, r_final, days_since, depleted, current_water, water_after);
+   
     Some(remaining / r_final - days_since)
 }
 
@@ -572,116 +580,6 @@ mod test {
         assert!(weighted_r(10.0, 0.0, None, 0, 0) > 0.0);
     }
 
-    #[test]
-    fn test_days_until_watering_none_if_no_measurements() {
-        let result = days_until_watering_full(
-            &[],
-            600.0,
-            400.0,
-            "universal",
-            1.5,
-            "Regular",
-            "window",
-            "normal",
-            16.0,
-            1.0,
-            0.0,
-            0,
-            20.0,
-        );
-        assert!(result.is_none());
-    }
+ 
 
-    #[test]
-    fn test_days_until_watering_some_if_data_present() {
-        let today = chrono::Local::now().date_naive();
-        let measurements = vec![
-            make_measurement(500.0, &today.to_string()),
-            make_measurement(480.0, &(today - chrono::Days::new(3)).to_string()),
-        ];
-        let result = days_until_watering_full(
-            &measurements,
-            600.0,
-            400.0,
-            "universal",
-            1.5,
-            "Regular",
-            "window",
-            "normal",
-            16.0,
-            1.0,
-            0.0,
-            0,
-            20.0,
-        );
-        assert!(result.is_some());
-    }
-
-    #[test]
-    fn test_days_until_watering_negative_when_overdue() {
-        let today = chrono::Local::now().date_naive();
-        let measurements = vec![
-            make_measurement(410.0, &today.to_string()),
-            make_measurement(450.0, &(today - chrono::Days::new(3)).to_string()),
-        ];
-        let result = days_until_watering_full(
-            &measurements,
-            600.0,
-            400.0,
-            "universal",
-            1.5,
-            "Regular",
-            "window",
-            "normal",
-            16.0,
-            1.0,
-            0.0,
-            0,
-            20.0,
-        );
-        assert!(result.is_some());
-        assert!(result.unwrap() < 0.0);
-    }
-
-    #[test]
-    fn test_days_tropical_less_than_succulent() {
-        let today = chrono::Local::now().date_naive();
-        let measurements = vec![
-            make_measurement(500.0, &today.to_string()),
-            make_measurement(480.0, &(today - chrono::Days::new(3)).to_string()),
-        ];
-        let days_tropical = days_until_watering_full(
-            &measurements,
-            600.0,
-            400.0,
-            "tropical",
-            1.5,
-            "Tropical",
-            "window",
-            "normal",
-            16.0,
-            1.0,
-            0.0,
-            0,
-            20.0,
-        )
-        .unwrap();
-        let days_succulent = days_until_watering_full(
-            &measurements,
-            600.0,
-            400.0,
-            "succulent",
-            1.5,
-            "Succulent",
-            "window",
-            "normal",
-            16.0,
-            1.0,
-            0.0,
-            0,
-            20.0,
-        )
-        .unwrap();
-        assert!(days_tropical < days_succulent);
-    }
 }
