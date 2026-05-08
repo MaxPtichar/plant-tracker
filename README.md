@@ -1,43 +1,33 @@
 # 🌱 Plant Tracker
-
 Indoor plant watering tracker with weight-based analytics. Telegram bot with watering predictions and measurement logging.
 
 ## Idea
-
 Plants are weighed before watering, after watering, and in between — by tracking weight changes the app calculates water consumption and predicts the next watering date.
 
 ## Features
-
 - Add plants with species type
 - Record weight measurements (before / after / between waterings)
 - Full measurement history per plant
 - Water consumption dynamics
 - Next watering prediction
-  - fewer than 3 waterings — uses baseline data per species
-  - 3 or more waterings — calculated from real plant history
+  - no history, no measurements — uses Penman-Monteith physical model
+  - watering history available — blended from historical cycles
+  - mid-cycle measurements available — prioritises current cycle data
+- Multi-user support — each Telegram user has their own isolated plant database
 
-## Supported Species
-
-- Chlorophytum
-- Ficus Kinki
-- Ficus Microcarpa
-- Ficus Black Prince
-- Sansevieria
 
 ## Tech Stack
-
 - Rust
-- Storage: JSON
+- Storage: PostgreSQL (`sqlx`)
+- Telegram: `teloxide` (async / Tokio)
 - Dates: `chrono`
 
 ## Roadmap
-
 - [✓] Telegram bot (async / Tokio / teloxide)
 - [✓] Watering notifications
-- [ ] Add support for all spiecies
-- [ ] Add per-user database (multi-user support)
+- [✓] Add support for all species
+- [✓] Add per-user database (multi-user support)
 - [ ] Add localization (EN / RU)
 
 ## Status
-
 In development — built as a Rust learning project.
