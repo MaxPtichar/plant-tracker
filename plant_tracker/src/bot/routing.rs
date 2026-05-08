@@ -1,10 +1,7 @@
-use std::time::Duration;
-
-pub use super::commands::Command;
 pub use super::dialogue::{MeasurementDialogue, PlantCreationDialogue};
 
 use crate::bot::callbacks::cancel_callback;
-use crate::bot::commands::{handle_command, handle_menu_buttons};
+use crate::bot::commands::handle_menu_buttons;
 use crate::bot::dialogue::PotCreationDialog;
 use crate::bot::handlers::delete_plants::{receive_answer, receive_plant_for_delete};
 use crate::bot::handlers::geo_data::recieve_geo;
@@ -18,13 +15,9 @@ use crate::bot::handlers::pot_creation::{
     recieve_pot_weight,
 };
 use crate::bot::handlers::{receive_date, receive_type, receive_weight};
-use crate::bot::notification::chat_notification;
-use chrono::{Local, Timelike};
+
 use teloxide::dispatching::dialogue::InMemStorage;
 use teloxide::prelude::*;
-
-use sqlx::PgPool;
-use sqlx::postgres::PgPoolOptions;
 
 pub type MyDialogue = Dialogue<MeasurementDialogue, InMemStorage<MeasurementDialogue>>;
 pub type HandlerResult = Result<(), Box<dyn std::error::Error + Send + Sync>>;

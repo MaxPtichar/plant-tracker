@@ -16,17 +16,7 @@ use teloxide::dispatching::Dispatcher;
 use teloxide::dispatching::dialogue::{self as tg_dialogue, InMemStorage};
 use teloxide::utils::command::BotCommands;
 
-use crate::bot::callbacks::cancel_callback;
-use crate::bot::commands::{handle_command, handle_menu_buttons};
-use crate::bot::dialogue::PotCreationDialog;
-use crate::bot::handlers::delete_plants::{receive_answer, receive_plant_for_delete};
-use crate::bot::handlers::measurement::receive_plant;
-use crate::bot::handlers::measurements_record::receive_plant_for_record;
-use crate::bot::handlers::plant_creation::get_plant_name;
-use crate::bot::handlers::pot_creation::{
-    receive_dry_soil_weight, receive_plant_for_pot, recieve_pot_weight,
-};
-use crate::bot::handlers::{receive_date, receive_type, receive_weight};
+use crate::bot::commands::handle_command;
 use crate::bot::notification::chat_notification;
 use crate::bot::routing::{callback_branches, message_branches};
 use crate::weather::get_weather_scheldue;
@@ -79,7 +69,6 @@ pub async fn plant_bot() {
     tokio::spawn(notification_loop(bot_clone.clone(), pool_clone.clone()));
     tokio::spawn(get_weather_scheldue(pool_clone.clone()));
 
-
     bot.set_my_commands(commands::Command::bot_commands())
         .await
         .unwrap();
@@ -114,5 +103,3 @@ async fn notification_loop(bot_clone: Bot, pool_clone: PgPool) {
         tokio::time::sleep(Duration::from_secs(30)).await;
     }
 }
-
-

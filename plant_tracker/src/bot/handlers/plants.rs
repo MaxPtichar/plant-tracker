@@ -1,9 +1,6 @@
-use std::clone;
-
 use sqlx::PgPool;
 
 use crate::{
-    analytics::days_until_watering,
     analytics_new::{days_until_watering_full, get_outdoor_temp},
     db_operations,
     models::{PlantFullContext, watering_status},
@@ -34,6 +31,7 @@ pub async fn get_all_plants_status(pool: &PgPool, chat_id: i64) -> sqlx::Result<
         let PlantFullContext {
             current_weight,
             last_watering_weight,
+            last_watering_date,
             pot_weight,
             dry_soil_weight,
             soil_type,
@@ -46,16 +44,18 @@ pub async fn get_all_plants_status(pool: &PgPool, chat_id: i64) -> sqlx::Result<
             cycles_count,
             plants_name,
             plant_id,
+            water_threshold,
             ..
         } = &plant;
-        dbg!(plants_name, last_watering_weight, avg_r);
+        dbg!(plants_name, last_watering_weight, avg_r, water_threshold);
+
         let dry_total = (pot_weight + dry_soil_weight) as f32;
         let dry_soil_weight_g = *dry_soil_weight as f32;
 
         let regular_measurements =
             db_operations::get_regular_after_last_watering(pool, *plant_id).await?;
         dbg!(&regular_measurements);
-        let regular_measurements: Vec<_> = regular_measurements.into_iter().take(2).collect();
+
         dbg!((last_watering_weight, avg_r));
 
         let (after_watering_weight, avg_r) = match (last_watering_weight, avg_r) {
@@ -68,6 +68,7 @@ pub async fn get_all_plants_status(pool: &PgPool, chat_id: i64) -> sqlx::Result<
 
         let days = days_until_watering_full(
             &regular_measurements,
+            *last_watering_date,
             after_watering_weight,
             dry_total,
             soil_type,
@@ -80,7 +81,10 @@ pub async fn get_all_plants_status(pool: &PgPool, chat_id: i64) -> sqlx::Result<
             avg_r,
             cycles_count.clone(),
             temp_outdoor,
+            *water_threshold,
         );
+
+        dbg!(&days);
 
         let line = match days {
             Some(d) => format!("🌱 {} — {}", plants_name, watering_status(d)),

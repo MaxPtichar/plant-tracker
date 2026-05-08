@@ -1,5 +1,5 @@
 use chrono::NaiveDate;
-use sqlx::{PgPool, pool};
+use sqlx::PgPool;
 use teloxide::prelude::*;
 
 use crate::models::MeasurementType;

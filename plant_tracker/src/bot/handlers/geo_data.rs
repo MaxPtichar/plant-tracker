@@ -2,10 +2,10 @@ use sqlx::PgPool;
 use teloxide::prelude::*;
 use teloxide::types::ReplyMarkup;
 
-use crate::bot::keyboards::{confrim_delete, main_menu_buttons, my_plants_menu};
+use crate::bot::keyboards::main_menu_buttons;
 
 use crate::{
-    bot::{HandlerResult, MeasurementDialogue, MyDialogue},
+    bot::{HandlerResult, MyDialogue},
     db_operations,
 };
 

@@ -9,7 +9,7 @@ use crate::{
         BULK_DENSITY_UNIVERSAL, CP_AIR, DELTA_COEF, FC_SUCCULENT, FC_TROPICAL, FC_UNIVERSAL, GAMMA,
         INDOOR_HUMIDITY, LAMBDA, MAD_REGULAR, MAD_SUCCULENT, MAD_TROPICAL, PWP_SUCCULENT,
         PWP_TROPICAL, PWP_UNIVERSAL, RA_NORMAL, RA_STAGNANT, RC_REGULAR, RC_SUCCULENT, RC_TROPICAL,
-        RHO_AIR, RN_SHADOW, RN_WINDOW
+        RHO_AIR, RN_SHADOW, RN_WINDOW,
     },
     models::Measurements,
 };
@@ -20,7 +20,10 @@ pub async fn set_outdoor_temp(temp: f32) {
 }
 
 pub fn get_outdoor_temp() -> f32 {
-    println!("{}", f32::from_bits(OUT_DOOR_TEMP_BITS.load(Ordering::Relaxed)));
+    println!(
+        "{}",
+        f32::from_bits(OUT_DOOR_TEMP_BITS.load(Ordering::Relaxed))
+    );
     f32::from_bits(OUT_DOOR_TEMP_BITS.load(Ordering::Relaxed))
 }
 
@@ -255,7 +258,7 @@ pub fn weighted_r(
 /// - `None` — not enough data (no history and no measurements)
 pub fn days_until_watering_full(
     regular_measurements: &[Measurements],
-    last_watering_date: Option<NaiveDate>, 
+    last_watering_date: Option<NaiveDate>,
     after_watering_weight: f32,
     dry_total: f32,
     soil_type: &str,
@@ -268,29 +271,29 @@ pub fn days_until_watering_full(
     avg_r: f32,
     cycles_count: i32,
     temp_outdoor: f32,
-    water_threshold: f32, 
+    water_threshold: f32,
 ) -> Option<f32> {
     // ИСПРАВЛЕНО: если нет Regular после полива — используем after_watering_weight
     // как текущий вес и days_since = 0, вместо возврата None
     let (current_weight, days_since) = match regular_measurements.first() {
-       Some(m) => {
-    let days = (chrono::Local::now().date_naive() - m.date).num_days() as f32;
-    (m.weight, days)
-
-}
-None => {
-    let days = last_watering_date
-        .map(|d| (chrono::Local::now().date_naive() - d).num_days() as f32)
-        .unwrap_or(0.0);
-    (after_watering_weight, days)
-}};
+        Some(m) => {
+            let days = (chrono::Local::now().date_naive() - m.date).num_days() as f32;
+            (m.weight, days)
+        }
+        None => {
+            let days = last_watering_date
+                .map(|d| (chrono::Local::now().date_naive() - d).num_days() as f32)
+                .unwrap_or(0.0);
+            (after_watering_weight, days)
+        }
+    };
 
     let current_water = current_weight - dry_total;
-let water_after = after_watering_weight - dry_total;
-let depleted = water_after - current_water;
+    let water_after = after_watering_weight - dry_total;
+    let depleted = water_after - current_water;
 
-let target_water = water_after * water_threshold;
-let remaining = current_water - target_water;
+    let target_water = water_after * water_threshold;
+    let remaining = current_water - target_water;
 
     let r_physical = penman_monteith(
         temp_outdoor,
@@ -317,8 +320,15 @@ let remaining = current_water - target_water;
         return None;
     }
 
-    dbg!(remaining, r_final, days_since, depleted, current_water, water_after);
-   
+    dbg!(
+        remaining,
+        r_final,
+        days_since,
+        depleted,
+        current_water,
+        water_after
+    );
+
     Some(remaining / r_final - days_since)
 }
 
@@ -579,7 +589,4 @@ mod test {
         assert!(weighted_r(10.0, 20.0, Some(15.0), 3, 5) > 0.0);
         assert!(weighted_r(10.0, 0.0, None, 0, 0) > 0.0);
     }
-
- 
-
 }

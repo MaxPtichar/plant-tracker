@@ -1,4 +1,3 @@
-use crate::bot::keyboards;
 use crate::constants::{REGULAR_PLANT, TROPICAL};
 
 use crate::{constants::SUKKULENT, models::Plant};
@@ -14,30 +13,6 @@ pub fn back_to() -> InlineKeyboardMarkup {
         "🏠 В главное меню",
         "cancel_action",
     )]])
-}
-
-/// Returns a keyboard for selecting target moisture level.
-///
-/// Options: Succulent (15%), Tropical (40%), Regular (30%), or custom input.
-pub fn get_type_of_moisture() -> InlineKeyboardMarkup {
-    InlineKeyboardMarkup::new(vec![
-        vec![InlineKeyboardButton::callback(
-            "🌵 Суккулент - 15%",
-            SUKKULENT.to_string(),
-        )],
-        vec![InlineKeyboardButton::callback(
-            "🌿 Тропическое - 40%",
-            TROPICAL.to_string(),
-        )],
-        vec![InlineKeyboardButton::callback(
-            "🌱 Обычное - 30%",
-            REGULAR_PLANT.to_string(),
-        )],
-        vec![InlineKeyboardButton::callback(
-            "✏️ Ввести вручную",
-            "custom",
-        )],
-    ])
 }
 
 /// Returns the main menu inline keyboard.

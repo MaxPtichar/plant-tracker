@@ -194,7 +194,7 @@ pub fn watering_status(days: f32) -> WateringStatus {
 /// ```
 
 fn watering_status_days_name(days: f32) -> &'static str {
-    let days_round = days.round() as u32;
+    let days_round = days.floor() as u32;
     if (11..=14).contains(&(days_round % 100)) {
         "дней"
     } else {
@@ -222,13 +222,13 @@ impl fmt::Display for WateringStatus {
             WateringStatus::Soon(days) => write!(
                 f,
                 "🕐 Полить в ближайшие дни - {} {} до полива",
-                days.round(),
+                days.floor() as u32,
                 watering_status_days_name(*days)
             ),
             WateringStatus::Wait(days) => write!(
                 f,
                 "✅ Ещё {} {}",
-                days.round(),
+                days.floor(),
                 watering_status_days_name(*days)
             ),
         }
@@ -283,6 +283,7 @@ pub struct PlantFullContext {
     pub current_weight: Option<f32>,
     pub last_watering_weight: Option<f32>,
     pub last_watering_date: Option<NaiveDate>,
+    pub water_threshold: f32,
 }
 
 #[derive(Debug, Deserialize)]

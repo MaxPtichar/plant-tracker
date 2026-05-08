@@ -405,7 +405,7 @@ pub async fn update_plant_after_cycle(
     plant_id: i64,
     new_avg_r: f32,
     new_transpiration_coef: f32,
-    new_water_threshold: f32, 
+    new_water_threshold: f32,
 ) -> sqlx::Result<()> {
     sqlx::query!(
         "UPDATE plants SET
@@ -416,7 +416,7 @@ pub async fn update_plant_after_cycle(
          WHERE id = $3",
         new_avg_r,
         new_transpiration_coef,
-        plant_id, 
+        plant_id,
         new_water_threshold
     )
     .execute(pool)
@@ -489,13 +489,13 @@ pub async fn get_geo_data(pool: &PgPool, user_id: i64) -> sqlx::Result<Option<Us
     Ok(res)
 }
 
-
 pub async fn get_all_users_geo(pool: &PgPool) -> sqlx::Result<Vec<UsersGeo>> {
-    let users_with_geo = sqlx::query_as!(UsersGeo, 
-            "SELECT id, latitude, longitude FROM users WHERE latitude IS NOT NULL"
-        )
-        .fetch_all(pool)
-        .await?;
+    let users_with_geo = sqlx::query_as!(
+        UsersGeo,
+        "SELECT id, latitude, longitude FROM users WHERE latitude IS NOT NULL"
+    )
+    .fetch_all(pool)
+    .await?;
     Ok(users_with_geo)
 }
 
