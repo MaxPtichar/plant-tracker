@@ -137,7 +137,8 @@ pub async fn get_all_plant_data(
 
          (SELECT date FROM measurements 
      WHERE plant_id = p.id AND (measuring_type = 'AfterWatering' or measuring_type = 'AfterWateringWithFeed')
-     ORDER BY date DESC LIMIT 1) AS "last_watering_date"
+     ORDER BY date DESC LIMIT 1) AS "last_watering_date", 
+     p.water_threshold
     FROM plants p
     JOIN pot_configs pc ON p.id = pc.plant_id
     WHERE p.user_id = $1 AND plant_id = $2 AND pc.is_active = true
@@ -171,7 +172,6 @@ pub async fn get_all_plants_data(
         pc.dry_soil_weight AS "dry_soil_weight!",
         pc.pot_diameter_cm AS "pot_diameter_cm!",
         pc.soil_type AS "soil_type!",
-        -- Добавлена запятая перед вторым подзапросом
         (SELECT weight FROM measurements 
          WHERE plant_id = p.id AND measuring_type = 'Regular'
          ORDER BY date DESC LIMIT 1) AS "current_weight",
@@ -182,7 +182,8 @@ pub async fn get_all_plants_data(
 
          (SELECT date FROM measurements 
      WHERE plant_id = p.id AND (measuring_type = 'AfterWatering' or measuring_type = 'AfterWateringWithFeed') 
-     ORDER BY date DESC LIMIT 1) AS "last_watering_date"
+     ORDER BY date DESC LIMIT 1) AS "last_watering_date",
+     p.water_threshold
     FROM plants p
     JOIN pot_configs pc ON p.id = pc.plant_id
     WHERE p.user_id = $1 AND pc.is_active = true; 
@@ -404,16 +405,19 @@ pub async fn update_plant_after_cycle(
     plant_id: i64,
     new_avg_r: f32,
     new_transpiration_coef: f32,
+    new_water_threshold: f32, 
 ) -> sqlx::Result<()> {
     sqlx::query!(
         "UPDATE plants SET
          avg_r = $1,
          transpiration_coef = $2,
-         cycles_count = cycles_count + 1
+         cycles_count = cycles_count + 1, 
+         water_threshold = $4
          WHERE id = $3",
         new_avg_r,
         new_transpiration_coef,
-        plant_id
+        plant_id, 
+        new_water_threshold
     )
     .execute(pool)
     .await?;
@@ -444,6 +448,30 @@ ORDER BY date DESC, id DESC",
         plant_id
     )
     .fetch_all(pool)
+    .await
+}
+
+pub async fn get_last_regular_before_watering(
+    pool: &PgPool,
+    plant_id: i64,
+) -> sqlx::Result<Option<Measurements>> {
+    sqlx::query_as!(
+        Measurements,
+        "SELECT id, plant_id, weight, date, measuring_type
+        FROM measurements
+        WHERE plant_id = $1
+          AND measuring_type = 'Regular'
+          AND date < COALESCE(
+              (SELECT MAX(date) FROM measurements
+               WHERE plant_id = $1
+                 AND (measuring_type = 'AfterWatering'
+                      OR measuring_type = 'AfterWateringWithFeed')),
+              '1970-01-01'
+          )
+        ORDER BY date DESC LIMIT 1",
+        plant_id
+    )
+    .fetch_optional(pool)
     .await
 }
 
