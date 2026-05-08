@@ -3,27 +3,37 @@ use chrono::{Days, Local, NaiveDate};
 use teloxide::prelude::*;
 
 use crate::bot::keyboards::main_menu_buttons;
-use crate::bot::{Command, HandlerResult, MyDialogue};
+use crate::bot::{HandlerResult, MyDialogue};
 use crate::models::MeasurementType;
 
+/// Parses a date string from callback data into [`NaiveDate`].
+///
+/// # Supported formats
+/// - `"today"` — current local date
+/// - `"yesterday"` — yesterday's local date
+/// - `"YYYY-MM-DD"` — explicit date string
+///
+/// # Returns
+/// - `Some(date)` — successfully parsed
+/// - `None` — unrecognized format
 pub fn parse_date(q: &str) -> Option<NaiveDate> {
     match q {
         "today" => Some(get_current_date()),
         "yesterday" => Some(get_yesterday_date()),
-        _ => NaiveDate::parse_from_str(q, "%Y-%m-%d").ok(),
-    }
-}
-
-pub fn parse_main_menu_buttons(q: &str) -> Option<Command> {
-    match q {
-        "status" => Some(Command::Status),
-        "Addmeasurement" => Some(Command::Addmeasurement),
-        "LastFeed" => Some(Command::LastFeed),
-
         _ => None,
     }
 }
 
+/// Parses a measurement type string from callback data into [`MeasurementType`].
+///
+/// # Supported values
+/// - `"Regular"` — regular weight measurement
+/// - `"AfterWatering"` — measurement taken right after watering
+/// - `"AfterWateringWithFeed"` — measurement taken after watering with fertilizer
+///
+/// # Returns
+/// - `Some(MeasurementType)` — successfully parsed
+/// - `None` — unrecognized value
 pub fn parse_measurement_type(q: &str) -> Option<MeasurementType> {
     match q {
         "Regular" => Some(MeasurementType::Regular),
@@ -34,6 +44,10 @@ pub fn parse_measurement_type(q: &str) -> Option<MeasurementType> {
     }
 }
 
+/// Returns a dptree handler that cancels the current dialogue on `"cancel_action"` callback.
+///
+/// Exits the dialogue, answers the callback query,
+/// and returns the user to the main menu.
 pub fn cancel_callback()
 -> Handler<'static, HandlerResult, teloxide::dispatching::DpHandlerDescription> {
     dptree::filter(|q: CallbackQuery| q.data.as_deref() == Some("cancel_action")).endpoint(

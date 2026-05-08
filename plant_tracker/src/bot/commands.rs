@@ -1,63 +1,119 @@
+use sqlx::PgPool;
 use teloxide::prelude::*;
-use teloxide::utils::command::{BotCommands};
+use teloxide::utils::command::{self, BotCommands};
 
-use crate::bot::callbacks::parse_main_menu_buttons;
+use crate::bot::handlers::plants::{get_all_plants_status, get_list_of_all_plants};
+use crate::bot::keyboards::{back_to_my_plants, geo_button, my_plants_menu};
 use crate::bot::keyboards::{main_menu_buttons, plant_keyboard};
+
+use crate::bot::dialogue::PotCreationDialog;
 use crate::bot::{HandlerResult, MeasurementDialogue, MyDialogue};
+use crate::db_operations;
+use crate::operations::format_last_feed;
 
-use crate::bot::user::save_chat_id;
-use crate::operations::{get_avr_r_for_each_plant, get_predicate, last_feed};
-use crate::storage::load;
-
+/// Bot commands available via `/` in Telegram.
+///
+/// Callback-only actions (`CreatePot`, `CreatePlant`, etc.) are handled
+/// separately in [`handle_menu_buttons`] and are not exposed as commands.
 #[derive(BotCommands, Clone)]
 #[command(rename_rule = "lowercase")]
 pub enum Command {
     #[command(description = "Главное меню")]
     Start,
+    #[command(description = "Мои растения")]
+    MyPlants,
     #[command(description = "Когда поливать")]
     Status,
     #[command(description = "Добавить измерение")]
     Addmeasurement,
     #[command(description = "Последняя прикормка")]
     LastFeed,
+    #[command(description = "Установить геолокацию")]
+    SetLocation,
     #[command(description = "Отменить действие")]
     Cancel,
 }
 
+/// Callback-only actions triggered via inline keyboard buttons.
+/// Not registered as Telegram bot commands.
+pub enum CallbackCommand {
+    MyMeasurements,
+    CreatePot,
+    CreatePlant,
+    PlantList,
+    DeletePlant,
+    SetGeo,
+}
+
+/// Handles bot commands sent via `/command` syntax.
+///
+/// # Commands
+/// - `/start` — registers the user and shows the main menu
+/// - `/myplants` — shows the "My Plants" submenu
+/// - `/status` — shows watering status for all plants
+/// - `/addmeasurement` — starts the measurement recording dialogue
+/// - `/lastfeed` — shows the last fertilizer application date per plant
+/// - `/cancel` — exits the current dialogue
 pub async fn handle_command(
     bot: Bot,
     msg: Message,
     cmd: Command,
     dialogue: MyDialogue,
+    pool: PgPool,
 ) -> HandlerResult {
+    let username = msg.chat.username();
+    let chat_id_i64 = msg.chat.id.0;
+
     match cmd {
         Command::Start => {
-            save_chat_id(msg.chat.id);
-            bot.send_message(msg.chat.id, "Выбери действие: ")
+            db_operations::create_user(&pool, chat_id_i64, username).await?;
+            bot.send_message(msg.chat.id, "Выберите действие: ")
                 .reply_markup(main_menu_buttons())
                 .await?;
         }
 
-        Command::Status => {
-            let plants = load();
-
-            bot.send_message(msg.chat.id, get_predicate(&plants))
+        Command::MyPlants => {
+            bot.send_message(msg.chat.id, "Выберите действие: ")
+                .reply_markup(my_plants_menu())
                 .await?;
         }
 
+        Command::Status => {
+            let text = get_all_plants_status(&pool, msg.chat.id.0).await?;
+            bot.send_message(msg.chat.id, text).await?;
+        }
+
         Command::Addmeasurement => {
-            let plants = load();
+            let plants: Vec<crate::models::Plant> =
+                db_operations::get_user_plants(&pool, chat_id_i64).await?;
+            if plants.is_empty() {
+                bot.send_message(msg.chat.id, format!("Пока еще нет ни одного растения🌱"))
+                    .await?;
+                dialogue.exit().await?;
+                return Ok(());
+            }
             dialogue
                 .update(MeasurementDialogue::WaitingForPlant)
                 .await?;
             bot.send_message(msg.chat.id, "Выбери растение: ")
-                .reply_markup(plant_keyboard(&plants))
+                .reply_markup(plant_keyboard(&plants, "Start"))
                 .await?;
         }
 
         Command::LastFeed => {
-            let plants = load();
-            bot.send_message(msg.chat.id, last_feed(&plants)).await?;
+            let plants = db_operations::recieve_plants_with_last_feed(&pool, msg.chat.id.0).await?;
+            bot.send_message(msg.chat.id, format_last_feed(&plants))
+                .await?;
+        }
+
+        Command::SetLocation => {
+            dialogue.update(MeasurementDialogue::WaitLocation).await?;
+            bot.send_message(
+                msg.chat.id,
+                "Геолокация нужна для определения температуры в вашем городе!",
+            )
+            .reply_markup(geo_button())
+            .await?;
         }
 
         Command::Cancel => {
@@ -68,51 +124,147 @@ pub async fn handle_command(
     Ok(())
 }
 
+/// Handles inline keyboard button presses from the main and submenu screens.
+///
+/// Matches `q.data` string directly against known callback values:
+/// - `"Start"` — main menu
+/// - `"MyPlants"` — my plants submenu
+/// - `"PlantList"` — list of all plants with details
+/// - `"MyMeasurements"` — measurement history, starts plant selection dialogue
+/// - `"DeletePlant"` — delete plant, starts plant selection dialogue
+/// - `"CreatePot"` — pot configuration, starts pot creation dialogue
+/// - `"CreatePlant"` — starts plant creation dialogue
+/// - `"status"` — watering status for all plants
+/// - `"Addmeasurement"` — starts measurement recording dialogue
+/// - `"LastFeed"` — last fertilizer application date
+/// - `"Cancel"` — exits the current dialogue
 pub async fn handle_menu_buttons(
     bot: Bot,
     q: CallbackQuery,
     dialogue: MyDialogue,
+    pool: PgPool,
 ) -> HandlerResult {
+    dbg!(&q.data);
     bot.answer_callback_query(q.id.clone()).await?;
 
     let Some(data) = q.data else { return Ok(()) };
 
-    let Some(cmd) = parse_main_menu_buttons(&data) else {
-        return Ok(());
-    };
-
     let chat_id = q.message.as_ref().unwrap().chat().id;
+    let username = q.from.username.as_deref();
+    let chat_id_i64 = chat_id.0;
 
-    match cmd {
-        Command::Start => {
+    match data.as_str() {
+        "Start" => {
+            db_operations::create_user(&pool, chat_id_i64, username).await?;
+
             bot.send_message(chat_id, "Выбери действие: ")
                 .reply_markup(main_menu_buttons())
                 .await?;
         }
-        Command::Status => {
-            let mut plants = load();
-            get_avr_r_for_each_plant(&mut plants);
-            bot.send_message(chat_id, get_predicate(&plants)).await?;
+
+        "MyPlants" => {
+            bot.send_message(chat_id, "Выберите действие: ")
+                .reply_markup(my_plants_menu())
+                .await?;
         }
 
-        Command::Addmeasurement => {
-            let plants = load();
+        "PlantList" => {
+            let text = get_list_of_all_plants(&pool, chat_id.0).await?;
+            bot.send_message(chat_id, text)
+                .reply_markup(back_to_my_plants())
+                .await?;
+        }
+
+        "MyMeasurements" => {
+            let plants = db_operations::get_user_plants(&pool, chat_id_i64).await?;
+            if plants.is_empty() {
+                bot.send_message(chat_id, "Пока нет растений 🌱").await?;
+                return Ok(());
+            }
+            dialogue
+                .update(MeasurementDialogue::WaitingForPlantRecord)
+                .await?;
+            bot.send_message(chat_id, "Выбери растение:")
+                .reply_markup(plant_keyboard(&plants, "MyPlants"))
+                .await?;
+        }
+
+        "DeletePlant" => {
+            let plants = db_operations::get_user_plants(&pool, chat_id_i64).await?;
+            if plants.is_empty() {
+                bot.send_message(chat_id, "Пока нет растений 🌱").await?;
+                return Ok(());
+            }
+            dialogue
+                .update(MeasurementDialogue::WaitingForPlantDelete)
+                .await?;
+            bot.send_message(chat_id, "\nВыбери растение, которое хотите удалить:\n")
+                .reply_markup(plant_keyboard(&plants, "MyPlants"))
+                .await?;
+        }
+
+        "CreatePot" => {
+            let plants = db_operations::get_user_plants(&pool, chat_id_i64).await?;
+            if plants.is_empty() {
+                bot.send_message(chat_id, "Пока еще нет ни одного растения🌱")
+                    .await?;
+                dialogue.exit().await?;
+                return Ok(());
+            }
+            dialogue
+                .update(MeasurementDialogue::CreatingPot(
+                    PotCreationDialog::ChoosePlantName,
+                ))
+                .await?;
+            bot.send_message(chat_id, "Выбери растение: ")
+                .reply_markup(plant_keyboard(&plants, "MyPlants"))
+                .await?;
+        }
+
+        "CreatePlant" => {
+            dialogue
+                .update(MeasurementDialogue::CreatingPlant(
+                    super::PlantCreationDialogue::WaitingForName,
+                ))
+                .await?;
+            bot.send_message(chat_id, "Введите название растения")
+                .await?;
+        }
+
+        "status" => {
+            let text = get_all_plants_status(&pool, chat_id.0).await?;
+            bot.send_message(chat_id, text).await?;
+        }
+
+        "Addmeasurement" => {
+            let plants = db_operations::get_user_plants(&pool, chat_id_i64).await?;
+            if plants.is_empty() {
+                bot.send_message(chat_id, "Пока еще нет ни одного растения🌱")
+                    .await?;
+                dialogue.exit().await?;
+                return Ok(());
+            }
             dialogue
                 .update(MeasurementDialogue::WaitingForPlant)
                 .await?;
             bot.send_message(chat_id, "Выбери растение: ")
-                .reply_markup(plant_keyboard(&plants))
+                .reply_markup(plant_keyboard(&plants, "Start"))
                 .await?;
         }
-        Command::LastFeed => {
-            let plants = load();
-            bot.send_message(chat_id, last_feed(&plants)).await?;
+
+        "LastFeed" => {
+            let plants = db_operations::recieve_plants_with_last_feed(&pool, chat_id.0).await?;
+            let text = format_last_feed(&plants);
+            bot.send_message(chat_id, text).await?;
         }
 
-        Command::Cancel => {
-            dialogue.exit().await?; // сбрасывает состояние диалога
+        "Cancel" => {
+            dialogue.exit().await?;
             bot.send_message(chat_id, "Отменено").await?;
         }
+
+        _ => {}
     }
+
     Ok(())
 }

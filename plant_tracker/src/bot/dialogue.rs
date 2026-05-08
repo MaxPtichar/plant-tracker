@@ -1,143 +1,134 @@
-use teloxide::prelude::*;
-
-use crate::bot::callbacks::{parse_date, parse_measurement_type};
-use crate::bot::keyboards::{back_to, date_keyboard, measurement_type_keyboard, plant_keyboard};
-use crate::bot::{HandlerResult, MyDialogue};
 use crate::models::MeasurementType;
-use crate::operations::add_new_measurement;
-use crate::storage::load;
-
-#[derive(Clone, Default)]
+/// FSM state for the "record measurement" dialogue.
+///
+/// Transitions:
+/// ```text
+/// WaitingForPlant
+///     └─ (callback: plant selected) ──→ WaitingForWeight
+///             └─ (text: float) ────────→ WaitingForType
+///                     └─ (callback: type) ──→ WaitingForDate
+///                             └─ (callback: date) ──→ [save → exit]
+/// ```
+///
+/// Side dialogues entered from the main menu:
+/// - `CreatingPlant` — add a new plant (sub-FSM)
+/// - `CreatingPot` — configure pot for an existing plant (sub-FSM)
+/// - `WaitingForPlantRecord` — view measurement history
+/// - `WaitingForPlantDelete` / `WaitingForConfirmDelete` — delete a plant
+#[derive(Debug, Clone, Default)]
 pub enum MeasurementDialogue {
+    /// Entry point. Waiting for the user to select a plant
+    /// from the inline keyboard.
     #[default]
     WaitingForPlant,
-    WaitingForWeight {
-        plant_id: u32,
+    MyPlants,
+
+    WaitLocation,
+
+    /// Waiting for the user to select a plant to view measurement history.
+    WaitingForPlantRecord,
+
+    /// Waiting for the user to select a plant to delete.
+    WaitingForPlantDelete,
+
+    /// Plant selected for deletion. Waiting for confirmation (`"ConfirmDelete"` or `"MyPlants"`).
+    WaitingForConfirmDelete {
+        plant_id: i64,
     },
+
+    /// Pot configuration sub-FSM. See [`PotCreationDialog`].
+    CreatingPot(PotCreationDialog),
+
+    /// User chose to create a new plant instead of selecting existing.
+    /// Delegates to [`PlantCreationDialogue`] sub-FSM.
+    CreatingPlant(PlantCreationDialogue),
+
+    /// Plant selected. Waiting for weight input (grams, float).
+    WaitingForWeight {
+        plant_id: i64,
+        plant_name: String,
+    },
+
+    /// Weight collected. Waiting for measurement type selection
+    /// via inline keyboard ([`MeasurementType`]).
     WaitingForType {
-        plant_id: u32,
+        plant_id: i64,
         weight: f32,
     },
+
+    /// Type collected. Waiting for date selection via inline keyboard.
     WaitingForDate {
-        plant_id: u32,
+        plant_id: i64,
+        weight: f32,
+        type_: MeasurementType,
+    },
+    WaitingForCustomDate {
+        plant_id: i64,
         weight: f32,
         type_: MeasurementType,
     },
 }
 
-//get weight
-pub async fn receive_weight(
-    bot: Bot,
-    dialogue: MyDialogue,
-    msg: Message,
-    plant_id: u32,
-) -> HandlerResult {
-    match msg.text() {
-        Some(text) => match text.parse::<f32>() {
-            Ok(weight) => {
-                dialogue
-                    .update(MeasurementDialogue::WaitingForType { plant_id, weight })
-                    .await?;
+/// FSM state for the "add new plant" dialogue.
+///
+/// Transitions:
+/// ```text
+/// WaitingForName
+///     └─ (text: name) ──────────────→ WaitingForMoisture
+///                 ├─ (callback: preset) ──→ [create plant → exit]
+///                 └─ (callback: custom) ──→ WaitingForCustomMoisture
+///                             └─ (text: float 0.0–1.0) ──→ [create plant → exit]
+/// ```
+#[derive(Debug, Clone, Default)]
+pub enum PlantCreationDialogue {
+    /// Entry point. Waiting for the plant's display name as a text message.
+    #[default]
+    WaitingForName,
 
-                bot.send_message(msg.chat.id, "Выбери тип измерений: ")
-                    .reply_markup(measurement_type_keyboard())
-                    .await?;
-            }
-
-            Err(_) => {
-                bot.send_message(msg.chat.id, "Введите число").await?;
-            }
-        },
-
-        None => {
-            bot.send_message(msg.chat.id, "Введите вес в граммах")
-                .await?;
-        }
-    }
-
-    Ok(())
+    WaitingForPlantType {
+        name: String,
+    },
+    WaitingForLightLevel {
+        name: String,
+        plant_type: String,
+    },
+    WaitingForAirCirculation {
+        name: String,
+        plant_type: String,
+        light_level: String,
+    },
 }
 
-pub async fn receive_type(
-    bot: Bot,
-    dialogue: MyDialogue,
-    q: CallbackQuery,
-    (plant_id, weight): (u32, f32),
-) -> HandlerResult {
-    if let Some(data) = q.data {
-        bot.answer_callback_query(q.id).await?;
+/// FSM state for the "configure pot" dialogue.
+///
+/// Transitions:
+/// ```text
+/// ChoosePlantName
+///     └─ (callback: plant selected) ──→ WaitingForPotWeight
+///             └─ (text: integer) ──────→ WaitingForDrySoilWeight
+///                     └─ (text: integer) ──→ [save config → exit]
+/// ```
+#[derive(Debug, Clone, Default)]
+pub enum PotCreationDialog {
+    /// Entry point. Waiting for plant selection via inline keyboard.
+    #[default]
+    ChoosePlantName,
 
-        if let Some(type_) = parse_measurement_type(&data) {
-            dialogue
-                .update(MeasurementDialogue::WaitingForDate {
-                    plant_id,
-                    weight,
-                    type_,
-                })
-                .await?;
+    /// Plant selected. Waiting for empty pot weight input (grams, integer).
+    WaitingForPotWeight { plant_id: i64 },
 
-            let chat_id = q.message.unwrap().chat().id;
-            bot.send_message(chat_id, "Выберите дату: ")
-                .reply_markup(date_keyboard())
-                .await?;
-        }
-    }
-    Ok(())
-}
+    /// Pot weight collected. Waiting for dry soil weight input (grams, integer).
+    WaitingForDrySoilWeight { plant_id: i64, pot_weight: i64 },
 
-pub async fn recieve_date(
-    bot: Bot,
-    dialogue: MyDialogue,
-    q: CallbackQuery,
-    (plant_id, weight, type_): (u32, f32, MeasurementType),
-) -> HandlerResult {
-    let chat_id = q.message.unwrap().chat().id;
-
-    if let Some(data) = q.data {
-        bot.answer_callback_query(q.id).await?;
-
-        if let Some(date) = parse_date(&data) {
-            bot.send_message(
-                chat_id,
-                format!(
-                    "Записано: {} г., тип полива: {:?}, дата: {}",
-                    weight, type_, date
-                ),
-            )
-            .await?;
-
-            let mut plants = load();
-            add_new_measurement(&mut plants, plant_id, weight, date, type_);
-
-            dialogue
-                .update(MeasurementDialogue::WaitingForPlant)
-                .await?;
-            bot.send_message(chat_id, "Выбери растение: ")
-                .reply_markup(plant_keyboard(&plants))
-                .await?;
-        } else {
-            bot.send_message(chat_id, "Неверный формат даты. Попробуйте еще раз")
-                .await?;
-        }
-    }
-
-    Ok(())
-}
-
-// get id plant
-pub async fn receive_plant(bot: Bot, q: CallbackQuery, dialogue: MyDialogue) -> HandlerResult {
-    if let Some(data) = q.data {
-        let plant_id: u32 = data.parse().unwrap();
-        bot.answer_callback_query(q.id).await?;
-
-        dialogue
-            .update(MeasurementDialogue::WaitingForWeight { plant_id })
-            .await?;
-
-        let chat_id = q.message.unwrap().chat().id;
-        bot.send_message(chat_id, "Введите вес в граммах")
-            .reply_markup(back_to())
-            .await?;
-    }
-    Ok(())
+    WaitingForDiameter {
+        plant_id: i64,
+        pot_weight: i64,
+        dry_soil_weight: i64,
+    },
+    WaitingForSoilType {
+        plant_id: i64,
+        pot_weight: i64,
+        dry_soil_weight: i64,
+        pot_diameter_cm: f32,
+    },
 }

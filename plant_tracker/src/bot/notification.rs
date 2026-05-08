@@ -1,31 +1,46 @@
-use crate::analytics::days_until_watering;
-use crate::bot::user::load_chat_id;
-use crate::models::watering_status;
-use crate::storage::load;
-
+use sqlx::PgPool;
 use teloxide::Bot;
 use teloxide::prelude::Requester;
+use teloxide::types::ChatId;
 
-pub async fn chat_notification(bot: &Bot) {
-    let Some(chat_id) = load_chat_id() else {
-        return;
+use crate::bot::handlers::plants::get_all_plants_status;
+use crate::db_operations;
+
+/// Sends watering reminders to all users who have plants that need urgent attention.
+///
+/// Called daily at 09:00 by [`notification_loop`].
+///
+/// For each registered user, fetches the watering status of all their plants
+/// and sends a notification if any plant is in one of the critical states:
+/// - `"Полив просрочен"` — watering is overdue
+/// - `"Полить сегодня"` — watering is due today
+///
+/// Errors per user are logged to stderr and skipped — one failing user
+/// does not interrupt notifications for others.
+pub async fn chat_notification(bot: &Bot, pool: &PgPool) {
+    let users = match db_operations::get_all_users(pool).await {
+        Ok(users) => users,
+        Err(e) => {
+            eprintln!("Failed to get users: {e}");
+            return;
+        }
     };
-    let plant = load();
 
-    let urgent: Vec<String> = plant
-        .iter()
-        .filter_map(|plant| {
-            let days = days_until_watering(plant)?;
-            if days <= 2.0 {
-                Some(format!("🌱 {}: {}", plant.name, watering_status(days)))
-            } else {
-                None
+    for user in users {
+        let chat_id = ChatId(user.id);
+
+        let status = match get_all_plants_status(pool, user.id).await {
+            Ok(s) => s,
+            Err(e) => {
+                eprintln!("Failed to get status for {}: {e}", user.id);
+                continue;
             }
-        })
-        .collect();
-
-    if !urgent.is_empty() {
-        let text = format!("💧 Пора поливать:\n{}", urgent.join("\n"));
-        let _ = bot.send_message(chat_id, text).await;
+        };
+        if status.contains("Полив просрочен") || status.contains("Полить сегодня")
+        {
+            let _ = bot
+                .send_message(chat_id, format!("💧 Напоминание о поливе:\n{}", status))
+                .await;
+        }
     }
 }
