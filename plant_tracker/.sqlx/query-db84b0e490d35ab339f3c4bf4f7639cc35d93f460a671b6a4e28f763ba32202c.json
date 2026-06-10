@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT DISTINCT ON (p.id) \n    p.plants_name as \"plants_name!\",\n    m.date as \"date?\"\nFROM plants p\nLEFT JOIN measurements m ON p.id = m.plant_id\nAND m.measuring_type = 'AfterWateringWithFeed'\nWHERE p.user_id = $1\nORDER BY p.id, m.date DESC",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "plants_name!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "date?",
+        "type_info": "Date"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "db84b0e490d35ab339f3c4bf4f7639cc35d93f460a671b6a4e28f763ba32202c"
+}

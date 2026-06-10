@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, username, created_at FROM users",
+  "query": "SELECT id, plants_name\n         FROM plants WHERE user_id = $1",
   "describe": {
     "columns": [
       {
@@ -10,23 +10,19 @@
       },
       {
         "ordinal": 1,
-        "name": "username",
+        "name": "plants_name",
         "type_info": "Text"
-      },
-      {
-        "ordinal": 2,
-        "name": "created_at",
-        "type_info": "Timestamptz"
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Int8"
+      ]
     },
     "nullable": [
       false,
-      true,
       false
     ]
   },
-  "hash": "a6f303f1371329b2cb9c5a4e0d15cbb5189e6cf3b775a14f64e36b4badbc0baf"
+  "hash": "a8d6a2ef19e8696515d7b71efa2f1916d0074de93d3d5eaf313469b5b3049bae"
 }
