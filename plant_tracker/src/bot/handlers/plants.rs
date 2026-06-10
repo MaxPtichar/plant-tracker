@@ -47,16 +47,14 @@ pub async fn get_all_plants_status(pool: &PgPool, chat_id: i64) -> sqlx::Result<
             water_threshold,
             ..
         } = &plant;
-        dbg!(plants_name, last_watering_weight, avg_r, water_threshold);
+      
 
         let dry_total = (pot_weight + dry_soil_weight) as f32;
         let dry_soil_weight_g = *dry_soil_weight as f32;
 
         let regular_measurements =
             db_operations::get_regular_after_last_watering(pool, *plant_id).await?;
-        dbg!(&regular_measurements);
-
-        dbg!((last_watering_weight, avg_r));
+       
 
         let (after_watering_weight, avg_r) = match (last_watering_weight, avg_r) {
             (&Some(l_watering), &Some(r)) => (l_watering, r),
@@ -84,7 +82,7 @@ pub async fn get_all_plants_status(pool: &PgPool, chat_id: i64) -> sqlx::Result<
             *water_threshold,
         );
 
-        dbg!(&days);
+       
 
         let line = match days {
             Some(d) => format!("🌱 {} — {}", plants_name, watering_status(d)),
@@ -97,43 +95,6 @@ pub async fn get_all_plants_status(pool: &PgPool, chat_id: i64) -> sqlx::Result<
     Ok(result.join("\n"))
 }
 
-// pub async fn get_all_plants_status_old(pool: &PgPool, chat_id: i64) -> sqlx::Result<String> {
-//     let plants = db_operations::get_user_plants(&pool, chat_id).await?;
-//     if plants.is_empty() {
-//         return Ok(format!("Пока еще нет ни одного растения🌱"));
-//     }
-//     let mut result: Vec<String> = Vec::new();
-
-//     for plant in &plants {
-//         let measurements = db_operations::recieve_two_last_measurement(&pool, plant.id).await?;
-//         let pot = db_operations::get_active_config(&pool, plant.id).await?;
-//         let target_moisture = 2.0;
-//         let after_watering_weight =
-//             db_operations::get_last_watering_weight(&pool, plant.id).await?;
-//         dbg!(&pot);
-//         dbg!(&after_watering_weight);
-
-//         let line = match (pot, after_watering_weight) {
-//             (Some(pot), Some(after_watering_weight)) => {
-//                 match days_until_watering(
-//                     &measurements,
-//                     &pot,
-//                     target_moisture,
-//                     after_watering_weight,
-//                 ) {
-//                     Some(days) => format!("🌱 {} — {}", plant.plants_name, watering_status(days)),
-//                     None => format!("🌱 {} — нет данных", plant.plants_name),
-//                 }
-//             }
-
-//             _ => format!("🌱 {} — не настроено", plant.plants_name),
-//         };
-
-//         result.push(line);
-//     }
-
-//     Ok(result.join("\n"))
-// }
 
 /// Returns a formatted list of all user's plants with their configuration details.
 ///

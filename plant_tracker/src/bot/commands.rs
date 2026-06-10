@@ -133,7 +133,6 @@ pub async fn handle_menu_buttons(
     dialogue: MyDialogue,
     pool: PgPool,
 ) -> HandlerResult {
-    dbg!(&q.data);
     bot.answer_callback_query(q.id.clone()).await?;
 
     let Some(data) = q.data else { return Ok(()) };

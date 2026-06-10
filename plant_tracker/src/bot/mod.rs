@@ -84,6 +84,7 @@ pub async fn plant_bot() {
             )
             .branch(message_branches())
             .branch(callback_branches());
+        println!("Starting dispatcher");
     Dispatcher::builder(bot, handler)
         .dependencies(dependencies)
         .build()

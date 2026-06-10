@@ -315,14 +315,7 @@ pub fn days_until_watering_full(
         return None;
     }
 
-    dbg!(
-        remaining,
-        r_final,
-        days_since,
-        depleted,
-        current_water,
-        water_after
-    );
+   
 
     Some(remaining / r_final - days_since)
 }
@@ -368,13 +361,13 @@ mod test {
     fn test_p_sat_at_zero() {
         // при 0°C давление насыщенного пара = 0.611 кПа
         // точка замерзания воды — хорошо известное значение
-        dbg!(p_sat(0.0));
+
         assert!(approx_eq(p_sat(0.0), 0.611));
     }
     #[test]
     fn test_p_sat_at_20() {
         // при 20°C = 2.338 кПа — стандартная комнатная температура
-        dbg!(p_sat(20.0));
+    
         assert!(approx_eq(p_sat(20.0), 2.338));
     }
     #[test]

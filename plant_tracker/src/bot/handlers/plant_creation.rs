@@ -132,20 +132,20 @@ pub async fn get_air_circ(
     (name, plant_type, light_level): (String, String, String),
 ) -> HandlerResult {
     if let Some(data) = q.data {
-        dbg!(&data);
+      
 
         bot.answer_callback_query(q.id).await?;
-        dbg!("answered callback");
+      
 
         let air_circulation = match data.as_str() {
             "normal" => "normal".to_string(),
             _ => "stagnant".to_string(),
         };
 
-        dbg!(&air_circulation);
+       
 
         let chat_id = q.message.unwrap().chat().id;
-        dbg!(&chat_id);
+       
 
         let plant_id = db_operations::create_new_plant(
             &pool,
@@ -157,7 +157,7 @@ pub async fn get_air_circ(
         )
         .await?;
 
-        dbg!(plant_id);
+   
 
         dialogue
             .update(MeasurementDialogue::CreatingPot(

@@ -11,6 +11,7 @@ use axum::{routing::get, Router};
 #[tokio::main]
 async fn main() {
     tokio::spawn(async {
+        println!("Bot started");
         bot::plant_bot().await;
     });
 
