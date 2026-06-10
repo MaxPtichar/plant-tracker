@@ -36,7 +36,7 @@ pub async fn recieve_geo(
         .reply_markup(ReplyMarkup::kb_remove())
         .await?;
 
-        bot.send_message(msg.chat.id, format!("Выберете действие"))
+        bot.send_message(msg.chat.id, "Выберете действие".to_string())
             .reply_markup(main_menu_buttons())
             .await?;
 

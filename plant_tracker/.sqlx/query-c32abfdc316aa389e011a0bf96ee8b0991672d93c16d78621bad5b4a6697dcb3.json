@@ -1,0 +1,41 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.plants_name, m.weight, m.date, m.measuring_type \nFROM measurements m\nLEFT JOIN plants p ON p.id = m.plant_id\nWHERE p.id = $1 AND p.user_id = $2\nORDER BY m.date, m.id DESC\nLIMIT 20;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "plants_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "weight",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 2,
+        "name": "date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 3,
+        "name": "measuring_type",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "c32abfdc316aa389e011a0bf96ee8b0991672d93c16d78621bad5b4a6697dcb3"
+}

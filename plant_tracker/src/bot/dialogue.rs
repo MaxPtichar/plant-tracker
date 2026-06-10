@@ -21,7 +21,6 @@ pub enum MeasurementDialogue {
     /// from the inline keyboard.
     #[default]
     WaitingForPlant,
-    MyPlants,
 
     WaitLocation,
 
@@ -80,6 +79,7 @@ pub enum MeasurementDialogue {
 ///                             └─ (text: float 0.0–1.0) ──→ [create plant → exit]
 /// ```
 #[derive(Debug, Clone, Default)]
+#[allow(clippy::enum_variant_names)]
 pub enum PlantCreationDialogue {
     /// Entry point. Waiting for the plant's display name as a text message.
     #[default]

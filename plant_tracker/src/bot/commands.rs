@@ -1,6 +1,6 @@
 use sqlx::PgPool;
 use teloxide::prelude::*;
-use teloxide::utils::command::{self, BotCommands};
+use teloxide::utils::command::BotCommands;
 
 use crate::bot::handlers::plants::{get_all_plants_status, get_list_of_all_plants};
 use crate::bot::keyboards::{back_to_my_plants, geo_button, my_plants_menu};
@@ -32,17 +32,6 @@ pub enum Command {
     SetLocation,
     #[command(description = "Отменить действие")]
     Cancel,
-}
-
-/// Callback-only actions triggered via inline keyboard buttons.
-/// Not registered as Telegram bot commands.
-pub enum CallbackCommand {
-    MyMeasurements,
-    CreatePot,
-    CreatePlant,
-    PlantList,
-    DeletePlant,
-    SetGeo,
 }
 
 /// Handles bot commands sent via `/command` syntax.
@@ -87,7 +76,7 @@ pub async fn handle_command(
             let plants: Vec<crate::models::Plant> =
                 db_operations::get_user_plants(&pool, chat_id_i64).await?;
             if plants.is_empty() {
-                bot.send_message(msg.chat.id, format!("Пока еще нет ни одного растения🌱"))
+                bot.send_message(msg.chat.id, "Пока еще нет ни одного растения🌱".to_string())
                     .await?;
                 dialogue.exit().await?;
                 return Ok(());

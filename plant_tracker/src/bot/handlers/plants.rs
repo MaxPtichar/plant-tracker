@@ -19,9 +19,9 @@ use crate::{
 /// - `"не настроено"` if no active pot config or no watering recorded
 /// - `"Пока еще нет ни одного растения🌱"` if user has no plants
 pub async fn get_all_plants_status(pool: &PgPool, chat_id: i64) -> sqlx::Result<String> {
-    let plants = db_operations::get_all_plants_data(&pool, chat_id).await?;
+    let plants = db_operations::get_all_plants_data(pool, chat_id).await?;
     if plants.is_empty() {
-        return Ok(format!("Пока еще нет ни одного растения🌱"));
+        return Ok("Пока еще нет ни одного растения🌱".to_string());
     }
 
     let mut result: Vec<String> = Vec::new();
@@ -29,7 +29,7 @@ pub async fn get_all_plants_status(pool: &PgPool, chat_id: i64) -> sqlx::Result<
 
     for plant in &plants {
         let PlantFullContext {
-            current_weight,
+            current_weight: _,
             last_watering_weight,
             last_watering_date,
             pot_weight,
@@ -59,7 +59,7 @@ pub async fn get_all_plants_status(pool: &PgPool, chat_id: i64) -> sqlx::Result<
         dbg!((last_watering_weight, avg_r));
 
         let (after_watering_weight, avg_r) = match (last_watering_weight, avg_r) {
-            (&Some(l_watering), &Some(r)) => (l_watering.clone(), r.clone()),
+            (&Some(l_watering), &Some(r)) => (l_watering, r),
             _ => {
                 result.push(format!("{plants_name} - недостаточно данных для расчета").to_string());
                 continue;
@@ -76,10 +76,10 @@ pub async fn get_all_plants_status(pool: &PgPool, chat_id: i64) -> sqlx::Result<
             plant_type,
             light_level,
             air_circulation,
-            pot_diameter_cm.clone(),
-            transpiration_coef.clone(),
+            *pot_diameter_cm,
+            *transpiration_coef,
             avg_r,
-            cycles_count.clone(),
+            *cycles_count,
             temp_outdoor,
             *water_threshold,
         );
@@ -149,7 +149,7 @@ pub async fn get_all_plants_status(pool: &PgPool, chat_id: i64) -> sqlx::Result<
 pub async fn get_list_of_all_plants(pool: &PgPool, chat_id: i64) -> sqlx::Result<String> {
     let plants = db_operations::get_list_of_all_user_plants(pool, chat_id).await?;
     if plants.is_empty() {
-        return Ok(format!("Пока еще нет ни одного растения🌱"));
+        return Ok("Пока еще нет ни одного растения🌱".to_string());
     }
 
     let result = plants

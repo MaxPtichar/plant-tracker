@@ -4,7 +4,7 @@ use crate::{
     analytics_new::set_outdoor_temp, constants::T_INDOOR_BASE, db_operations::get_all_users_geo,
     models::WeatherResponse,
 };
-use reqwest;
+
 use sqlx::PgPool;
 use tokio::time;
 
@@ -34,7 +34,7 @@ pub async fn get_weather_scheldue(
                 _ => continue,
             };
             let temp = match get_weather(lat, long).await {
-                Ok(temp) => temp as f32,
+                Ok(temp) => temp,
                 Err(e) => {
                     eprintln!("Ошибка API погоды: {}", e);
                     T_INDOOR_BASE

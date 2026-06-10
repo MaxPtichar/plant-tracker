@@ -42,9 +42,10 @@ fn p_sat(tem_c: f32) -> f32 {
 ///
 /// Constants origin:
 /// - `4098` — derived from Antoine equation differentiation:
-///            d/dT [e_s(T)] * 237.3² ≈ 4098 at standard conditions
-///            Source: FAO-56, Allen et al. 1998, eq. 13
-///
+/// ```text
+/// d/dT [e_s(T)] * 237.3² ≈ 4098 at standard conditions
+/// Source: FAO-56, Allen et al. 1998, eq. 13
+/// ```
 /// # Validation
 /// - T = 20°C → Δ ≈ 0.145 kPa/°C
 /// - T = 30°C → Δ ≈ 0.243 kPa/°C
@@ -89,12 +90,6 @@ fn vpd(tem_c: f32) -> f32 {
     ps - pa
 }
 
-fn vpd_with_diff_humidity(tem_c: f32, humidity: f32) -> f32 {
-    let ps = p_sat(tem_c);
-    let pa = ps * humidity;
-    ps - pa
-}
-
 /// Calculates evapotranspiration for indoor plants using Penman-Monteith FAO-56.
 ///
 /// Returns estimated water loss in g/day for the given pot.
@@ -112,7 +107,6 @@ fn vpd_with_diff_humidity(tem_c: f32, humidity: f32) -> f32 {
 /// - `λ`  — latent heat of vaporization J/kg
 /// - `γ`  — psychrometric constant kPa/°C
 /// - `rc` — stomatal resistance s/m
-
 pub fn penman_monteith(
     tem_c: f32,
     plant_type: &str,
@@ -172,8 +166,8 @@ fn soil_params(soil_type: &str) -> (f32, f32, f32) {
 fn taw(soil_type: &str, dry_soil_weight_g: f32) -> f32 {
     let (fc, pwp, density) = soil_params(soil_type);
     let volume_l = (dry_soil_weight_g / 1000.0) / density;
-    let taw_g = (fc - pwp) * volume_l;
-    taw_g
+    (fc - pwp) * volume_l
+   
 }
 
 /// Calculates Readily Available Water in grams
@@ -256,13 +250,14 @@ pub fn weighted_r(
 /// # Returns
 /// - `Some(days)` — days until watering (negative = overdue)
 /// - `None` — not enough data (no history and no measurements)
+#[warn(clippy::too_many_arguments)]
 pub fn days_until_watering_full(
     regular_measurements: &[Measurements],
     last_watering_date: Option<NaiveDate>,
     after_watering_weight: f32,
     dry_total: f32,
-    soil_type: &str,
-    dry_soil_weight_g: f32,
+    _soil_type: &str,
+    _dry_soil_weight_g: f32,
     plant_type: &str,
     light_level: &str,
     air_circulation: &str,
@@ -355,12 +350,11 @@ pub fn avg_evaporation_rate(last_measurements: &[Measurements]) -> Option<f32> {
     let delta_days = (date1 - date2).abs().num_days().max(1) as f32;
     let evapuation_rate = (weight2 - weight1).abs() / delta_days;
 
-    Some(evapuation_rate as f32)
+    Some(evapuation_rate)
 }
 
 #[cfg(test)]
 mod test {
-    use chrono::NaiveDate;
 
     use super::*;
 
@@ -370,15 +364,6 @@ mod test {
         (a - b).abs() < EPSILON
     }
 
-    fn make_measurement(weight: f32, date: &str) -> Measurements {
-        Measurements {
-            id: 1,
-            plant_id: 1,
-            weight,
-            date: NaiveDate::parse_from_str(date, "%Y-%m-%d").unwrap(),
-            measuring_type: "Regular".to_string(),
-        }
-    }
     #[test]
     fn test_p_sat_at_zero() {
         // при 0°C давление насыщенного пара = 0.611 кПа
@@ -451,11 +436,6 @@ mod test {
     fn vpd_temp_30() {
         //vpd with temp 30.0°C
         assert!(approx_eq(vpd(30.0), 2.546));
-    }
-    #[test]
-    fn vpd_temp_30_and_humidity() {
-        //vpd with temp 30.0°C
-        assert!(approx_eq(vpd_with_diff_humidity(30.0, 1.0), 0.0));
     }
     #[test]
     fn test_penman_monteith_positive() {

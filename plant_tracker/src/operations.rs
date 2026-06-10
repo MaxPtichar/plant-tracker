@@ -24,7 +24,7 @@ use crate::models::{PlantFullContext, PlantWithLastFeedWatering};
 ///
 pub fn format_last_feed(plants: &[PlantWithLastFeedWatering]) -> String {
     if plants.is_empty() {
-        return format!("🌱 Растений пока нет");
+        return "🌱 Растений пока нет".to_string();
     }
 
     plants
@@ -47,8 +47,8 @@ pub async fn transpiration_coef_calc(
     plant_id: i64,
     user_id: i64,
 ) -> sqlx::Result<(f32, f32, f32)> {
-    let data = db_operations::get_all_plant_data(&pool, user_id, plant_id).await?;
-    let last_measurements = db_operations::get_regular_after_last_watering(&pool, plant_id).await?;
+    let data = db_operations::get_all_plant_data(pool, user_id, plant_id).await?;
+    let last_measurements = db_operations::get_regular_after_last_watering(pool, plant_id).await?;
 
     let PlantFullContext {
         plant_type,
@@ -70,19 +70,17 @@ pub async fn transpiration_coef_calc(
         return Ok((*old_coef, avg_r.unwrap_or(0.1), *old_threshold));
     }
 
-    dbg!(&last_measurements);
 
     let last_two: Vec<_> = last_measurements.iter().take(2).cloned().collect();
     let tem_c = get_outdoor_temp();
 
-    dbg!(&tem_c);
 
     let penman = penman_monteith(
         tem_c,
         plant_type,
         light_level,
         air_circulation,
-        pot_diameter_cm.clone(),
+        *pot_diameter_cm,
         1.0,
     );
 
@@ -156,10 +154,10 @@ pub async fn transpiration_coef_calc(
 
 pub async fn update_avg_cycle(plant_id: i64, pool: &PgPool, user_id: i64) -> sqlx::Result<()> {
     let (new_transpiration_coef, new_avg_r, new_threshold) =
-        transpiration_coef_calc(&pool, plant_id, user_id).await?;
+        transpiration_coef_calc(pool, plant_id, user_id).await?;
 
     db_operations::update_plant_after_cycle(
-        &pool,
+        pool,
         plant_id,
         new_avg_r,
         new_transpiration_coef,

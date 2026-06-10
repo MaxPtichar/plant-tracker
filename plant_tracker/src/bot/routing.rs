@@ -16,10 +16,8 @@ use crate::bot::handlers::pot_creation::{
 };
 use crate::bot::handlers::{receive_date, receive_type, receive_weight};
 
-use teloxide::dispatching::dialogue::InMemStorage;
 use teloxide::prelude::*;
 
-pub type MyDialogue = Dialogue<MeasurementDialogue, InMemStorage<MeasurementDialogue>>;
 pub type HandlerResult = Result<(), Box<dyn std::error::Error + Send + Sync>>;
 
 pub fn message_branches()
@@ -163,9 +161,9 @@ fn measurement_branches()
             .endpoint(receive_date),
         )
 }
-
+#[warn(clippy::unnecessary_map_or)]
 pub fn is_menu_callback(q: CallbackQuery) -> bool {
-    q.data.as_deref().map_or(false, |d| {
+    q.data.as_deref().is_some_and(|d| {
         d == "status"
             || d == "Addmeasurement"
             || d == "MyPlants"

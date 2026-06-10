@@ -1,0 +1,70 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, user_id, plants_name,\n         plant_type, light_level, air_circulation,\n         transpiration_coef, avg_r, cycles_count\n         FROM plants WHERE user_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "plants_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "plant_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "light_level",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "air_circulation",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "transpiration_coef",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 7,
+        "name": "avg_r",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 8,
+        "name": "cycles_count",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "df8f175a6857e76315f71c5f1ba8be1ee6899326fbcc9b68bf979f0ecee2eaf0"
+}

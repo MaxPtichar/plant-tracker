@@ -1,6 +1,6 @@
 use core::fmt;
 
-use chrono::{DateTime, NaiveDate, Utc};
+use chrono::NaiveDate;
 use serde::Deserialize;
 use sqlx::FromRow;
 /// Measurement type stored in the `measurements` table.
@@ -49,7 +49,6 @@ impl fmt::Display for MeasurementType {
 /// `date` is `None` if no `AfterWateringWithFeed` measurement exists yet.
 #[derive(Debug, FromRow)]
 pub struct PlantWithLastFeedWatering {
-    pub id: i64,
     pub plants_name: String,
     pub date: Option<NaiveDate>,
 }
@@ -59,20 +58,11 @@ pub struct PlantWithLastFeedWatering {
 pub struct User {
     /// Telegram chat ID, used as the primary identifier.
     pub id: i64,
-    pub username: Option<String>,
-    pub created_at: DateTime<Utc>,
 }
 
 /// Telegram user's geolocation. Need for weather API.
 #[derive(Debug, FromRow)]
-pub struct UserGeo {
-    pub latitude: Option<f64>,
-    pub longitude: Option<f64>,
-}
-
-#[derive(Debug, FromRow)]
 pub struct UsersGeo {
-    pub id: i64,
     pub latitude: Option<f64>,
     pub longitude: Option<f64>,
 }
@@ -80,71 +70,15 @@ pub struct UsersGeo {
 #[derive(Debug, FromRow)]
 pub struct Plant {
     pub id: i64,
-    pub user_id: i64,
     pub plants_name: String,
-
-    /// Plant type affects stomatal resistance and watering threshold.
-    /// Values: `"Regular"` | `"Tropical"` | `"Succulent"`
-    pub plant_type: String,
-
-    /// Light level affects net radiation balance (Rn) in Penman-Monteith.
-    /// Values: `"window"` | `"shadow"`
-    pub light_level: String,
-
-    /// Air circulation affects aerodynamic resistance (ra) in Penman-Monteith.
-    /// Values: `"normal"` | `"stagnant"`
-    pub air_circulation: String,
-
-    /// Calibration coefficient combining leaf area and plant health.
-    /// Updated automatically after each completed watering cycle.
-    /// Default: `1.0`
-    pub transpiration_coef: f32,
-
-    /// Exponential moving average of evaporation rate g/day across all cycles.
-    /// Used as fallback when current cycle has fewer than 2 measurements.
-    /// `None` until first cycle is completed.
-    pub avg_r: Option<f32>,
-
-    /// Number of completed watering cycles.
-    /// Used as weight in [`weighted_r`] calculation.
-    pub cycles_count: i32,
-}
-/// Physical configuration of a pot, used for moisture calculations.
-///
-/// Multiple configs per plant are allowed — only the active one
-/// (`is_active = true`) is used for calculations.
-#[derive(Debug, FromRow)]
-pub struct PotConfig {
-    pub id: i64,
-    pub plant_id: i64,
-
-    /// Weight of the empty pot in grams.
-    pub pot_weight: i64,
-
-    /// Weight of fully dry soil in grams.
-    pub dry_soil_weight: i64,
-
-    /// Whether this config is currently in use.
-    pub is_active: bool,
-
-    /// Pot diameter in cm. Used to calculate surface area for Penman-Monteith.
-    pub pot_diameter_cm: f32,
-
-    /// Soil type affects Field Capacity and Permanent Wilting Point.
-    /// Values: `"universal"` | `"succulent"` | `"tropical"`
-    pub soil_type: String,
 }
 
 /// A single weight measurement for a plant.
 #[derive(Debug, FromRow, Clone)]
 pub struct Measurements {
-    pub id: i64,
-    pub plant_id: i64,
     /// Measured weight of the pot in grams.
     pub weight: f32,
     pub date: NaiveDate,
-    /// String representation of [`MeasurementType`].
-    pub measuring_type: String,
 }
 
 /// Represents the urgency of the next watering for a plant.
@@ -192,7 +126,6 @@ pub fn watering_status(days: f32) -> WateringStatus {
 /// assert_eq!(watering_status_days_name(11.0), "дней");
 /// assert_eq!(watering_status_days_name(21.0), "день");
 /// ```
-
 fn watering_status_days_name(days: f32) -> &'static str {
     let days_round = days.floor() as u32;
     if (11..=14).contains(&(days_round % 100)) {
@@ -200,7 +133,7 @@ fn watering_status_days_name(days: f32) -> &'static str {
     } else {
         match days_round % 10 {
             1 => "день",
-            2 | 3 | 4 => "дня",
+            2..=4 => "дня",
             _ => "дней",
         }
     }
@@ -253,7 +186,6 @@ pub struct PlantDetails {
 /// Used to render the measurement history screen ([`get_measurement_record_20`]).
 #[derive(Debug, FromRow)]
 pub struct PlantMeasurementsHistory {
-    pub plants_name: String,
     /// Measured weight of the pot in grams.
     pub weight: f32,
     pub date: NaiveDate,

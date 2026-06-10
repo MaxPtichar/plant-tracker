@@ -1,0 +1,58 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, plant_id, pot_weight, dry_soil_weight, is_active,\n         pot_diameter_cm, soil_type\n         FROM pot_configs WHERE plant_id = $1 AND is_active = true",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "plant_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "pot_weight",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "dry_soil_weight",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "is_active",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 5,
+        "name": "pot_diameter_cm",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 6,
+        "name": "soil_type",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "b6bf5375be8cf93958b16803f0158bf88534d667fc74fcb554fdc71c13800eae"
+}

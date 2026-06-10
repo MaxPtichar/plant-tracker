@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE users SET\n        latitude = $1, \n        longitude = $2 \n        WHERE id = $3",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Float8",
+        "Float8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e2f3fff6c0f88f021be70bcd72909bccaec57e02c1ea59c152fabf9a4f3129ec"
+}

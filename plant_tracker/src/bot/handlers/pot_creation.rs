@@ -64,10 +64,10 @@ pub async fn recieve_pot_weight(
             Ok(pot_weight) => {
                 bot.send_message(
                     msg.chat.id,
-                    format!(
+                    
                         "\n\nМне нужно знать «нулевую точку» (вес без воды).
-Введите общий вес горшка с сухой землей в граммах:»"
-                    ),
+Введите общий вес горшка с сухой землей в граммах:»".to_string()
+                    ,
                 )
                 .await?;
 
@@ -116,13 +116,12 @@ pub async fn receive_dry_soil_weight(
             Ok(dry_soil_weight) => {
                 bot.send_message(
                     msg.chat.id,
-                    format!(
                         "🪴 Отлично! Почти готово.
 
 Измерьте диаметр горшка по верхнему краю и введите в сантиметрах.
 
-Например: 12, 16, 20",
-                    ),
+Например: 12, 16, 20".to_string()
+                    ,
                 )
                 .await?;
 
@@ -162,12 +161,11 @@ pub async fn receive_pot_diameter(
             Ok(pot_diameter_cm) => {
                 bot.send_message(
                     msg.chat.id,
-                    format!(
+                    
                         "🌱 Какой грунт используется?
 
 Тип грунта влияет на то, как быстро земля отдаёт воду корням.
-Если не уверены — выбирайте универсальный.",
-                    ),
+Если не уверены — выбирайте универсальный.".to_string(),
                 )
                 .reply_markup(soil_type_keyboard())
                 .await?;

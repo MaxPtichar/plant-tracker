@@ -1,6 +1,4 @@
-use crate::constants::{REGULAR_PLANT, TROPICAL};
-
-use crate::{constants::SUKKULENT, models::Plant};
+use crate::models::Plant;
 
 use teloxide::types::{
     ButtonRequest, InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, KeyboardMarkup,

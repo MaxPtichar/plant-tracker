@@ -1,9 +1,3 @@
-// Порог остаточной влаги (доля от 0.0 до 1.0)
-
-pub const SUKKULENT: f32 = 0.15;
-pub const TROPICAL: f32 = 0.40;
-pub const REGULAR_PLANT: f32 = 0.30;
-
 // ============================================================
 // Physics constants for indoor plant evapotranspiration model
 // Based on Penman-Monteith FAO-56, adapted for indoor conditions
@@ -59,15 +53,8 @@ pub const RA_NORMAL: f32 = 250.0;
 /// Aerodynamic resistance in stagnant air (corners, enclosed spaces), s/m
 pub const RA_STAGNANT: f32 = 800.0;
 
-/// Offset between outdoor API temperature and indoor temperature, °C
-/// Indoor is typically 5–10°C warmer in winter, cooler in summer
-pub const T_INDOOR_OFFSET: f32 = 7.0;
-
 /// Baseline indoor temperature, °C
 pub const T_INDOOR_BASE: f32 = 20.0;
-
-/// Outdoor temperature influence factor (30% of outdoor affects indoor)
-pub const T_OUTDOOR_FACTOR: f32 = 0.3;
 
 // --- Сопротивление устьиц по типу растения, s/m ---
 

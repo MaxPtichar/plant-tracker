@@ -78,7 +78,7 @@ pub async fn receive_weight(
     bot: Bot,
     dialogue: MyDialogue,
     msg: Message,
-    (plant_id, plant_name): (i64, String),
+    (plant_id, _plant_name): (i64, String),
 ) -> HandlerResult {
     match msg.text() {
         Some(text) => match text.parse::<f32>() {
@@ -118,7 +118,6 @@ pub async fn receive_type(
     bot: Bot,
     dialogue: MyDialogue,
     q: CallbackQuery,
-    pool: PgPool,
     (plant_id, weight): (i64, f32),
 ) -> HandlerResult {
     if let Some(data) = q.data {
@@ -162,15 +161,15 @@ pub async fn receive_date(
     if let Some(data) = q.data.as_deref() {
         bot.answer_callback_query(q.id).await?;
 
-        if let Some(date) = parse_date(&data) {
-            return Ok(finalize_measurement(
+        if let Some(date) = parse_date(data) {
+            return finalize_measurement(
                 bot,
                 dialogue,
                 chat_id,
                 pool,
                 (plant_id, weight, type_, date),
             )
-            .await?);
+            .await;
         }
         dialogue
             .update(MeasurementDialogue::WaitingForCustomDate {
@@ -204,7 +203,7 @@ pub async fn finalize_measurement(
     )
     .await?;
     if type_ == MeasurementType::Regular {
-        let user_id = chat_id.0 as i64;
+        let user_id = chat_id.0;
         update_avg_cycle(plant_id, &pool, user_id).await?;
     }
 
@@ -229,20 +228,20 @@ pub async fn receive_custom_date(
     pool: PgPool,
     (plant_id, weight, type_): (i64, f32, MeasurementType),
 ) -> HandlerResult {
-    if let Some(text) = msg.text() {
-        if let Ok(date) = NaiveDate::parse_from_str(text, "%d.%m.%Y")
+    if let Some(text) = msg.text() 
+        && let Ok(date) = NaiveDate::parse_from_str(text, "%d.%m.%Y")
             .or_else(|_| NaiveDate::parse_from_str(text, "%d.%m.%y"))
         {
-            return Ok(finalize_measurement(
+            return finalize_measurement(
                 bot,
                 dialogue,
                 msg.chat.id,
                 pool,
                 (plant_id, weight, type_, date),
             )
-            .await?);
+            .await;
         }
-    }
+    
 
     bot.send_message(
         msg.chat.id,

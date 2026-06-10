@@ -1,6 +1,6 @@
 use crate::models::{
     Measurements, Plant, PlantDetails, PlantFullContext, PlantMeasurementsHistory,
-    PlantWithLastFeedWatering, PotConfig, User, UserGeo, UsersGeo,
+    PlantWithLastFeedWatering, User, UsersGeo,
 };
 use chrono::NaiveDate;
 use sqlx::PgPool;
@@ -76,26 +76,11 @@ pub async fn create_pot_config(
     Ok(())
 }
 
-/// Returns the active pot configuration for a plant.
-pub async fn get_active_config(pool: &PgPool, plant_id: i64) -> sqlx::Result<Option<PotConfig>> {
-    sqlx::query_as!(
-        PotConfig,
-        "SELECT id, plant_id, pot_weight, dry_soil_weight, is_active,
-         pot_diameter_cm, soil_type
-         FROM pot_configs WHERE plant_id = $1 AND is_active = true",
-        plant_id
-    )
-    .fetch_optional(pool)
-    .await
-}
-
 /// Returns all plants belonging to a user.
 pub async fn get_user_plants(pool: &PgPool, user_id: i64) -> sqlx::Result<Vec<Plant>> {
     sqlx::query_as!(
         Plant,
-        "SELECT id, user_id, plants_name,
-         plant_type, light_level, air_circulation,
-         transpiration_coef, avg_r, cycles_count
+        "SELECT id, plants_name
          FROM plants WHERE user_id = $1",
         user_id
     )
@@ -189,7 +174,6 @@ pub async fn get_all_plants_data(
     WHERE p.user_id = $1 AND pc.is_active = true; 
     "#,
         user_id,
-        
     )
     .fetch_all(pool)
     .await
@@ -216,77 +200,12 @@ pub async fn create_measurement(
     Ok(())
 }
 
-/// Returns a user by their Telegram ID.
-/// Returns None if the user is not registered.
-pub async fn get_user(pool: &PgPool, tg_id: i64) -> sqlx::Result<Option<User>> {
-    let res = sqlx::query_as!(
-        User,
-        "SELECT id, username, created_at FROM users WHERE id = $1",
-        tg_id
-    )
-    .fetch_optional(pool)
-    .await?;
-
-    Ok(res)
-}
-
 /// Returns all registered users.
 /// Used by the notification system to iterate over all chat IDs.
 pub async fn get_all_users(pool: &PgPool) -> sqlx::Result<Vec<User>> {
-    let res = sqlx::query_as!(User, "SELECT id, username, created_at FROM users",)
+    let res = sqlx::query_as!(User, "SELECT id FROM users",)
         .fetch_all(pool)
         .await?;
-
-    Ok(res)
-}
-
-/// Returns the most recent AfterWatering measurement for a plant.
-/// Returns None if no watering has been recorded yet.
-pub async fn get_last_watering(pool: &PgPool, plant_id: i64) -> sqlx::Result<Option<Measurements>> {
-    let res = sqlx::query_as!(
-        Measurements,
-        "SELECT id, plant_id, weight, date, measuring_type FROM measurements
-        WHERE plant_id = $1 AND measuring_type = 'AfterWatering'
-        ORDER BY date DESC LIMIT 1",
-        plant_id
-    )
-    .fetch_optional(pool)
-    .await?;
-
-    Ok(res)
-}
-
-/// Returns the weight of the most recent `AfterWatering` measurement for a plant.
-/// Used as the `AfterWatering_weight` parameter in watering calculations.
-/// Returns `None` if no watering has been recorded yet.
-pub async fn get_last_watering_weight(pool: &PgPool, plant_id: i64) -> sqlx::Result<Option<f32>> {
-    let res = sqlx::query_scalar!(
-        "SELECT weight FROM measurements
-        WHERE plant_id = $1 AND measuring_type = 'AfterWatering'
-        ORDER BY date DESC LIMIT 1",
-        plant_id
-    )
-    .fetch_optional(pool)
-    .await?;
-
-    Ok(res)
-}
-
-/// Returns the last 2 `Regular` measurements for a plant, newest first.
-/// Used as input for evaporation rate calculation in [`analytics::avg_evaporation_rate`].
-pub async fn recieve_two_last_measurement(
-    pool: &PgPool,
-    plant_id: i64,
-) -> sqlx::Result<Vec<Measurements>> {
-    let res = sqlx::query_as!(
-        Measurements,
-        "SELECT id, plant_id, weight, date, measuring_type FROM measurements
-        WHERE plant_id = $1 AND measuring_type = 'Regular'
-        ORDER BY date DESC, id DESC LIMIT 2",
-        plant_id
-    )
-    .fetch_all(pool)
-    .await?;
 
     Ok(res)
 }
@@ -299,7 +218,6 @@ pub async fn recieve_plants_with_last_feed(
     let res = sqlx::query_as!(
         PlantWithLastFeedWatering,
         "SELECT DISTINCT ON (p.id) 
-    p.id as \"id!\",
     p.plants_name as \"plants_name!\",
     m.date as \"date?\"
 FROM plants p
@@ -324,21 +242,8 @@ pub async fn delete_plant(pool: &PgPool, plant_id: i64) -> sqlx::Result<()> {
     Ok(())
 }
 
-/// Returns a single plant by its id.
-pub async fn get_plant(pool: &PgPool, plant_id: i64) -> sqlx::Result<Plant> {
-    sqlx::query_as!(
-        Plant,
-        "SELECT id, user_id, plants_name,
-         plant_type, light_level, air_circulation,
-         transpiration_coef, avg_r, cycles_count
-         FROM plants WHERE id = $1",
-        plant_id
-    )
-    .fetch_one(pool)
-    .await
-}
-
 /// Deletes the most recent measurement for a plant (used for /undo).
+#[allow(dead_code)]
 pub async fn delete_last_measurement(pool: &PgPool, plant_id: i64) -> sqlx::Result<()> {
     sqlx::query!(
         "DELETE FROM measurements WHERE id = (
@@ -356,8 +261,6 @@ pub async fn delete_last_measurement(pool: &PgPool, plant_id: i64) -> sqlx::Resu
 ///
 ///
 ///
-
-//переписать эту функци.
 pub async fn get_list_of_all_user_plants(
     pool: &PgPool,
     chat_id: i64,
@@ -385,7 +288,7 @@ pub async fn get_measurement_record_20(
 ) -> sqlx::Result<Vec<PlantMeasurementsHistory>> {
     sqlx::query_as!(
         PlantMeasurementsHistory,
-        "SELECT p.plants_name, m.weight, m.date, m.measuring_type 
+        "SELECT m.weight, m.date, m.measuring_type 
 FROM measurements m
 LEFT JOIN plants p ON p.id = m.plant_id
 WHERE p.id = $1 AND p.user_id = $2
@@ -433,7 +336,7 @@ pub async fn get_regular_after_last_watering(
 ) -> sqlx::Result<Vec<Measurements>> {
     sqlx::query_as!(
         Measurements,
-        "SELECT id, plant_id, weight, date, measuring_type
+        "SELECT weight, date
 FROM measurements
 WHERE plant_id = $1
   AND measuring_type = 'Regular'
@@ -457,7 +360,7 @@ pub async fn get_last_regular_before_watering(
 ) -> sqlx::Result<Option<Measurements>> {
     sqlx::query_as!(
         Measurements,
-        "SELECT id, plant_id, weight, date, measuring_type
+        "SELECT weight, date
         FROM measurements
         WHERE plant_id = $1
           AND measuring_type = 'Regular'
@@ -475,24 +378,10 @@ pub async fn get_last_regular_before_watering(
     .await
 }
 
-pub async fn get_geo_data(pool: &PgPool, user_id: i64) -> sqlx::Result<Option<UserGeo>> {
-    let res = sqlx::query_as!(
-        UserGeo,
-        "SELECT latitude, longitude
-        FROM users
-        WHERE id = $1",
-        user_id
-    )
-    .fetch_optional(pool)
-    .await?;
-
-    Ok(res)
-}
-
 pub async fn get_all_users_geo(pool: &PgPool) -> sqlx::Result<Vec<UsersGeo>> {
     let users_with_geo = sqlx::query_as!(
         UsersGeo,
-        "SELECT id, latitude, longitude FROM users WHERE latitude IS NOT NULL"
+        "SELECT latitude, longitude FROM users WHERE latitude IS NOT NULL"
     )
     .fetch_all(pool)
     .await?;
