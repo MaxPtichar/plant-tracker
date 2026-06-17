@@ -1,3 +1,5 @@
+use std::vec;
+
 use crate::models::Plant;
 
 use teloxide::types::{
@@ -18,7 +20,7 @@ pub fn main_menu_buttons() -> InlineKeyboardMarkup {
     InlineKeyboardMarkup::new(vec![
         vec![InlineKeyboardButton::callback(
             "🌿 Мои растения",
-            "MyPlants",
+            "myplants",
         )],
         vec![InlineKeyboardButton::callback(
             "💧 Когда поливать?",
@@ -26,11 +28,11 @@ pub fn main_menu_buttons() -> InlineKeyboardMarkup {
         )],
         vec![InlineKeyboardButton::callback(
             "📖 Добавить показания",
-            "Addmeasurement",
+            "addmeasurement",
         )],
         vec![InlineKeyboardButton::callback(
             "🧪 Последняя прикормка",
-            "LastFeed",
+            "lastfeed",
         )],
     ])
 }
@@ -40,29 +42,29 @@ pub fn my_plants_menu() -> InlineKeyboardMarkup {
     InlineKeyboardMarkup::new(vec![
         vec![InlineKeyboardButton::callback(
             "🌿 Показать мои растения",
-            "PlantList",
+            "plantlist",
         )],
         vec![InlineKeyboardButton::callback(
             "📖 Показать мои измерения",
-            "MyMeasurements",
+            "mymeasurements",
         )],
         vec![InlineKeyboardButton::callback(
             "➕ Добавить растение",
-            "CreatePlant",
+            "createplant",
         )],
         vec![InlineKeyboardButton::callback(
             "⚙️ Настроить полив",
-            "WateringConfig",
+            "wateringconfig",
         )],
         vec![InlineKeyboardButton::callback(
             "🪏 Удалить растение",
-            "DeletePlant",
+            "deleteplant",
         )],
         vec![InlineKeyboardButton::callback(
             "🗑 Удалить последнее измерение",
-            "DeleteLastMeasurement",
+            "deletelastmeasurement",
         )],
-        vec![InlineKeyboardButton::callback("↩︎ Назад", "Start")],
+        vec![InlineKeyboardButton::callback("↩︎ Назад", "mainmenu")],
     ])
 }
 
@@ -124,7 +126,7 @@ pub fn date_keyboard() -> InlineKeyboardMarkup {
 pub fn back_to_my_plants() -> InlineKeyboardMarkup {
     InlineKeyboardMarkup::new(vec![vec![InlineKeyboardButton::callback(
         "↩︎  Назад",
-        "MyPlants",
+        "myplants",
     )]])
 }
 
@@ -133,7 +135,20 @@ pub fn back_to_my_plants() -> InlineKeyboardMarkup {
 /// Options: confirm deletion or cancel (returns to "My Plants").
 pub fn confrim_delete() -> InlineKeyboardMarkup {
     InlineKeyboardMarkup::new(vec![vec![
-        InlineKeyboardButton::callback("✅ Да", "ConfirmDelete"),
-        InlineKeyboardButton::callback("❌ Нет", "MyPlants"),
+        InlineKeyboardButton::callback("✅ Да", "confirmdelete"),
+        InlineKeyboardButton::callback("❌ Нет", "myplants"),
     ]])
 }
+
+
+pub fn first_page() -> InlineKeyboardMarkup {
+    InlineKeyboardMarkup::new(vec![
+        vec![
+        InlineKeyboardButton::callback("📖 Как это работает?", "help"),
+        InlineKeyboardButton::callback("🪴 Добавить растение", "createplant"),]
+    ])
+}
+
+
+
+

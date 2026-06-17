@@ -290,7 +290,7 @@ pub async fn finalize_measurement(
         db_operations::get_user_plants(&pool, chat_id.0).await?;
 
     bot.send_message(chat_id, "Выбери растение: ")
-        .reply_markup(plant_keyboard(&plants, "Start"))
+        .reply_markup(plant_keyboard(&plants, "start"))
         .await?;
 
     Ok(())

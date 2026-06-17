@@ -57,7 +57,7 @@ pub async fn receive_answer_measurement(
         bot.answer_callback_query(q.id).await?;
         let chat_id = q.message.unwrap().chat().id;
         match data.as_str() {
-            "ConfirmDelete" => {
+            "confirmdelete" => {
                 db_operations::delete_last_measurement(&pool, plant_id).await?;
                 db_operations::set_daily_loss_to_null(&pool, plant_id).await?;
 
@@ -67,7 +67,7 @@ pub async fn receive_answer_measurement(
                 dialogue.exit().await?;
             }
 
-            "MyPlants" => {
+            "myplants" => {
                 bot.send_message(chat_id, "Отмена удаления")
                     .reply_markup(my_plants_menu())
                     .await?;

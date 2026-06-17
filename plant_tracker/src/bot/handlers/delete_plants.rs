@@ -60,7 +60,7 @@ pub async fn receive_answer(
         bot.answer_callback_query(q.id).await?;
         let chat_id = q.message.unwrap().chat().id;
         match data.as_str() {
-            "ConfirmDelete" => {
+            "confirmdelete" => {
                 db_operations::delete_plant(&pool, plant_id).await?;
                 bot.send_message(chat_id, "Растение удалено")
                     .reply_markup(my_plants_menu())
@@ -68,7 +68,7 @@ pub async fn receive_answer(
                 dialogue.exit().await?;
             }
 
-            "MyPlants" => {
+            "myplants" => {
                 bot.send_message(chat_id, "Отмена удаления")
                     .reply_markup(my_plants_menu())
                     .await?;
