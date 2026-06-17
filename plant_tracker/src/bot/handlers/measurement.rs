@@ -61,7 +61,10 @@ pub async fn receive_plant(
             .map(|(id, name)| (id.parse::<i64>().unwrap(), name.to_string()))
             .unwrap();
         let config = check_water_config(&pool, plant_id).await?;
-        let chat_id = q.message.context("ChatID doesn't exists")?.chat().id;
+
+        let message = q.message.as_ref().unwrap();
+        let chat_id = message.chat().id;
+        let msg_id = message.id();
         if !config {
             bot.send_message(
    chat_id,

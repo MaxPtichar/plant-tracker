@@ -148,18 +148,18 @@ pub async fn handle_menu_buttons(
         "start" => {
             db_operations::create_user(&pool, chat_id_i64, username).await?;
 
-            bot.send_message(chat_id, "Выбери действие: ")
+            bot.edit_message_text(chat_id, msg_id, "Выберите действие: ")
                 .reply_markup(first_page())
                 .await?;
         }
 
         "mainmenu" => {
-            bot.send_message(chat_id, "Выберите действие: ")
+           bot.edit_message_text(chat_id, msg_id, "Выберите действие: ")
                 .reply_markup(main_menu_buttons())
                 .await?;
         }
         "myplants" => {
-            bot.send_message(chat_id, "Выберите действие: ")
+            bot.edit_message_text(chat_id, msg_id, "Выберите действие: ")
                 .reply_markup(my_plants_menu())
                 .await?;
         }
@@ -168,7 +168,7 @@ pub async fn handle_menu_buttons(
 
         "plantlist" => {
             let text = get_list_of_all_plants(&pool, chat_id.0).await?;
-            bot.send_message(chat_id, text)
+             bot.edit_message_text(chat_id, msg_id, text)
                 .reply_markup(back_to_my_plants())
                 .await?;
         }
@@ -176,13 +176,14 @@ pub async fn handle_menu_buttons(
         "mymeasurements" => {
             let plants = db_operations::get_user_plants(&pool, chat_id_i64).await?;
             if plants.is_empty() {
-                bot.send_message(chat_id, "Пока нет растений 🌱").await?;
+                 bot.edit_message_text(chat_id, msg_id, "Пока нет растений 🌱")
+                .await?;
                 return Ok(());
             }
             dialogue
                 .update(MeasurementDialogue::WaitingForPlantRecord)
                 .await?;
-            bot.send_message(chat_id, "Выбери растение:")
+            bot.edit_message_text(chat_id, msg_id, "Выбери растение:")
                 .reply_markup(plant_keyboard(&plants, "myplants"))
                 .await?;
         }
@@ -190,13 +191,13 @@ pub async fn handle_menu_buttons(
         "deleteplant" => {
             let plants = db_operations::get_user_plants(&pool, chat_id_i64).await?;
             if plants.is_empty() {
-                bot.send_message(chat_id, "Пока нет растений 🌱").await?;
+                bot.edit_message_text(chat_id, msg_id, "Пока нет растений 🌱").await?;
                 return Ok(());
             }
             dialogue
                 .update(MeasurementDialogue::WaitingForPlantDelete)
                 .await?;
-            bot.send_message(chat_id, "\nВыбери растение, которое хотите удалить:\n")
+            bot.edit_message_text(chat_id, msg_id, "\nВыберите растение, которое хотите удалить:\n")
                 .reply_markup(plant_keyboard(&plants, "myplants"))
                 .await?;
         }
@@ -204,7 +205,7 @@ pub async fn handle_menu_buttons(
         "wateringconfig" => {
             let plants = db_operations::get_user_plants(&pool, chat_id_i64).await?;
             if plants.is_empty() {
-                bot.send_message(chat_id, "Пока еще нет ни одного растения🌱")
+                 bot.edit_message_text(chat_id, msg_id, "Пока еще нет ни одного растения🌱")
                     .await?;
                 dialogue.exit().await?;
                 return Ok(());
@@ -214,7 +215,7 @@ pub async fn handle_menu_buttons(
                     WateringConfigDialog::ChoosePlantName,
                 ))
                 .await?;
-            bot.send_message(chat_id, "Выбери растение: ")
+            bot.edit_message_text(chat_id, msg_id, "Выберите растение: ")
                 .reply_markup(plant_keyboard(&plants, "myplants"))
                 .await?;
         }
@@ -225,8 +226,7 @@ pub async fn handle_menu_buttons(
                     super::PlantCreationDialogue::WaitingForName,
                 ))
                 .await?;
-            bot.send_message(
-                chat_id,
+             bot.edit_message_text(chat_id, msg_id,
                 "🪴 Добавление нового растения\nВведите его название:",
             )
             .await?;
@@ -244,7 +244,7 @@ pub async fn handle_menu_buttons(
             let plants = db_operations::get_user_plants(&pool, chat_id_i64).await?;
 
             if plants.is_empty() {
-                bot.send_message(chat_id, "Пока еще нет ни одного растения🌱")
+                 bot.edit_message_text(chat_id, msg_id, "Пока еще нет ни одного растения🌱")
                     .await?;
                 dialogue.exit().await?;
                 return Ok(());
@@ -254,7 +254,7 @@ pub async fn handle_menu_buttons(
                 .update(MeasurementDialogue::WaitingForPlant)
                 .await?;
 
-            bot.send_message(chat_id, "Выберите растение: ")
+            bot.edit_message_text(chat_id, msg_id, "Выберите растение: ")
                 .reply_markup(plant_keyboard(&plants, "mainmenu"))
                 .await?;
         }
@@ -262,27 +262,26 @@ pub async fn handle_menu_buttons(
         "lastfeed" => {
             let plants = db_operations::recieve_plants_with_last_feed(&pool, chat_id.0).await?;
             let text = format_last_feed(&plants);
-            bot.send_message(chat_id, text)
+            bot.edit_message_text(chat_id, msg_id, text)
                 .reply_markup(back_to())
                 .await?;
         }
 
         "cancel" => {
             dialogue.exit().await?;
-            bot.send_message(chat_id, "Отменено").await?;
+             bot.edit_message_text(chat_id, msg_id, "Отменено").await?;
         }
 
         "deletelastmeasurement" => {
             let plants = db_operations::get_user_plants(&pool, chat_id_i64).await?;
             if plants.is_empty() {
-                bot.send_message(chat_id, "Пока нет растений 🌱").await?;
+                bot.edit_message_text(chat_id, msg_id,"Пока нет растений 🌱").await?;
                 return Ok(());
             }
             dialogue
                 .update(MeasurementDialogue::WaitingForMeasurementDelete)
                 .await?;
-            bot.send_message(
-                chat_id,
+            bot.edit_message_text(chat_id, msg_id,
                 "\nВыбери растение для того, чтобы удалить последнее измерение.",
             )
             .reply_markup(plant_keyboard(&plants, "myplants"))

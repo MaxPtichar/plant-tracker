@@ -19,7 +19,11 @@ pub async fn receive_plant_for_delete_measurement(
             .await?;
         bot.answer_callback_query(q.id).await?;
 
-        let chat_id = q.message.unwrap().chat().id;
+       
+        let message =  q.message.as_ref().unwrap();
+         let chat_id = message.chat().id;
+         let msg_id = message.id();
+
 
         if let Some(last_measure) = get_last_measurement(&pool, plant_id).await? {
             let mf = format!(
@@ -28,15 +32,15 @@ pub async fn receive_plant_for_delete_measurement(
                 last_measure.1.format("%d.%m.%Y")
             );
 
-            bot.send_message(
-                chat_id,
+            bot.edit_message_text(
+                chat_id, msg_id, 
                 format!("🗑️ Удалить последнее измерение для ☘️ {plant_name}?\n\n{mf}"),
             )
             .reply_markup(confrim_delete())
             .await?;
         } else {
-            bot.send_message(
-                chat_id,
+            bot.edit_message_text(
+                chat_id, msg_id, 
                 format!("📊 Измерений пока нет, выберите другое растение: "),
             )
             .reply_markup(my_plants_menu())
