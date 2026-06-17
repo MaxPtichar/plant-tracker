@@ -22,8 +22,6 @@ pub enum MeasurementDialogue {
     #[default]
     WaitingForPlant,
 
-    WaitLocation,
-
     /// Waiting for the user to select a plant to view measurement history.
     WaitingForPlantRecord,
 
@@ -31,29 +29,21 @@ pub enum MeasurementDialogue {
     WaitingForPlantDelete,
 
     /// Plant selected for deletion. Waiting for confirmation (`"ConfirmDelete"` or `"MyPlants"`).
-    WaitingForConfirmDelete {
-        plant_id: i64,
-    },
+    WaitingForConfirmDelete { plant_id: i64 },
 
     /// Pot configuration sub-FSM. See [`PotCreationDialog`].
-    CreatingPot(PotCreationDialog),
+    WateringConfig(WateringConfigDialog),
 
     /// User chose to create a new plant instead of selecting existing.
     /// Delegates to [`PlantCreationDialogue`] sub-FSM.
     CreatingPlant(PlantCreationDialogue),
 
     /// Plant selected. Waiting for weight input (grams, float).
-    WaitingForWeight {
-        plant_id: i64,
-        plant_name: String,
-    },
+    WaitingForWeight { plant_id: i64, plant_name: String },
 
     /// Weight collected. Waiting for measurement type selection
     /// via inline keyboard ([`MeasurementType`]).
-    WaitingForType {
-        plant_id: i64,
-        weight: f32,
-    },
+    WaitingForType { plant_id: i64, weight: f32 },
 
     /// Type collected. Waiting for date selection via inline keyboard.
     WaitingForDate {
@@ -84,19 +74,6 @@ pub enum PlantCreationDialogue {
     /// Entry point. Waiting for the plant's display name as a text message.
     #[default]
     WaitingForName,
-
-    WaitingForPlantType {
-        name: String,
-    },
-    WaitingForLightLevel {
-        name: String,
-        plant_type: String,
-    },
-    WaitingForAirCirculation {
-        name: String,
-        plant_type: String,
-        light_level: String,
-    },
 }
 
 /// FSM state for the "configure pot" dialogue.
@@ -109,26 +86,20 @@ pub enum PlantCreationDialogue {
 ///                     └─ (text: integer) ──→ [save config → exit]
 /// ```
 #[derive(Debug, Clone, Default)]
-pub enum PotCreationDialog {
+pub enum WateringConfigDialog {
     /// Entry point. Waiting for plant selection via inline keyboard.
     #[default]
     ChoosePlantName,
 
     /// Plant selected. Waiting for empty pot weight input (grams, integer).
-    WaitingForPotWeight { plant_id: i64 },
+    WaitingWetWeight { plant_id: i64 },
 
     /// Pot weight collected. Waiting for dry soil weight input (grams, integer).
-    WaitingForDrySoilWeight { plant_id: i64, pot_weight: i64 },
+    WaitingForDrySoilWeight { plant_id: i64, wet_weight: i64 },
 
-    WaitingForDiameter {
+    WaitingForThresholdPct {
         plant_id: i64,
-        pot_weight: i64,
-        dry_soil_weight: i64,
-    },
-    WaitingForSoilType {
-        plant_id: i64,
-        pot_weight: i64,
-        dry_soil_weight: i64,
-        pot_diameter_cm: f32,
+        wet_weight: i64,
+        dry_weight: i64,
     },
 }

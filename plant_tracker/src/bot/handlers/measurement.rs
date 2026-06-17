@@ -1,9 +1,15 @@
-use chrono::NaiveDate;
+use std::f32::consts;
+
+use chrono::{DateTime, NaiveDate, TimeZone, Utc};
 use sqlx::PgPool;
 use teloxide::prelude::*;
+use anyhow::Context;
 
-use crate::models::MeasurementType;
-use crate::operations::update_avg_cycle;
+
+use crate::analytycs_v2::daily_water_loss;
+use crate::bot::dialogue::WateringConfigDialog;
+use crate::db_operations::{check_water_config, get_daily_loss, get_last_after_watering};
+use crate::models::{MeasurementType, PlantMeasurementsHistory};
 use crate::{
     bot::{
         HandlerResult, MeasurementDialogue, MyDialogue,
@@ -12,6 +18,9 @@ use crate::{
     },
     db_operations,
 };
+
+//коэффициент сглаживания
+const ALPHA: f32 = 0.02;
 
 // ============================================================
 // Measurement recording — multi-step dialogue
@@ -40,16 +49,47 @@ use crate::{
 /// and prompts the user to enter weight in grams.
 ///
 /// Ignores non-numeric or missing callback data silently.
-pub async fn receive_plant(bot: Bot, q: CallbackQuery, dialogue: MyDialogue) -> HandlerResult {
+pub async fn receive_plant(bot: Bot, q: CallbackQuery, dialogue: MyDialogue, pool: PgPool) -> HandlerResult {
+
+    
+
+
     if let Some(data) = q.data {
+        dbg!(&data);
         let (plant_id, plant_name) = data
             .split_once(':')
             .map(|(id, name)| (id.parse::<i64>().unwrap(), name.to_string()))
             .unwrap();
+        let config = check_water_config(&pool, plant_id).await?;
+          let chat_id = q.message.context("ChatID doesn't exists")?.chat().id;
+        if !config {
+            bot.send_message(
+   chat_id, 
+    format!(
+        "⚠️ Настройки полива для этого цветка еще не заданы.\n\
+         Чтобы бот мог правильно рассчитывать влажность почвы и присылать напоминания, нам нужно провести быструю калибровку.\n\n\
+         ⚖️ Пожалуйста, введите вес ПОЛИТОГО растения в граммах (например: 1250):", 
+        
+    )
+
+    
+)
+.await?;
+dialogue
+            .update(MeasurementDialogue::WateringConfig(
+                WateringConfigDialog::WaitingWetWeight { plant_id },
+            ))
+            .await?;
+        return  Ok(());
+
+    }
+    
+        
+
 
         bot.answer_callback_query(q.id).await?;
 
-        let chat_id = q.message.unwrap().chat().id;
+      
         bot.send_message(
             chat_id,
             format!("☘️ {plant_name}\n\nВведите текущий вес растения в граммах:"),
@@ -191,20 +231,61 @@ pub async fn finalize_measurement(
     dialogue: MyDialogue,
     chat_id: ChatId,
     pool: PgPool,
-    (plant_id, weight, type_, date): (i64, f32, MeasurementType, NaiveDate),
+    (plant_id, weight, type_, date): (i64, f32, MeasurementType, DateTime<Utc>),
 ) -> HandlerResult {
     db_operations::create_measurement(&pool, plant_id, weight, date, type_.to_string()).await?;
-    bot.send_message(
-        chat_id,
-        format!(
-            "Записано: {} г., тип полива: {:?}, дата: {}",
-            weight, type_, date
-        ),
-    )
-    .await?;
+    tracing::info!(
+        "Created new measurement: plant_id: {}, date: {}",
+        plant_id,
+        date
+    );
+    let date_str = date.format("%d.%m.%Y").to_string();
+
+    let message = format!(
+        "🌱 **Запись зафиксирована**\n\
+         📅 Дата: {}\n\
+         ⚖️ Вес растения: {} г.\n\
+         💧 Режим: {}",
+        date_str, weight, type_
+    );
+
+    bot.send_message(chat_id, message).await?;
+
+    //update learned_daily_loss if measurement type is regular
+
+    let mut pl_detail: Vec<PlantMeasurementsHistory> = Vec::with_capacity(2);
+
     if type_ == MeasurementType::Regular {
-        let user_id = chat_id.0;
-        update_avg_cycle(plant_id, &pool, user_id).await?;
+        if let Ok(Some((watering_weight, watering_date))) =
+            get_last_after_watering(&pool, plant_id).await
+        {
+            let current_regular = PlantMeasurementsHistory {
+                weight,
+                date,
+                measuring_type: type_.to_string(),
+            };
+            let last_after_watering = PlantMeasurementsHistory {
+                weight: watering_weight,
+                date: watering_date,
+                measuring_type: String::from("AfterWatering"),
+            };
+
+            pl_detail.push(current_regular);
+            pl_detail.push(last_after_watering);
+
+            if let Some(loss) = daily_water_loss(&pl_detail) {
+                let old_loss_opt = get_daily_loss(&pool, plant_id).await?;
+
+                let target_emal = match old_loss_opt {
+                    Some(l) => ALPHA * loss + (1.0 - ALPHA) * l,
+                    None => loss,
+                };
+
+                tracing::info!("plant_id: {}, daily_loss: {}: ", plant_id, target_emal);
+                db_operations::update_daily_loss(&pool, plant_id, target_emal).await?;
+                tracing::info!("Daily loss is updated.")
+            }
+        }
     }
 
     dialogue
@@ -228,20 +309,22 @@ pub async fn receive_custom_date(
     pool: PgPool,
     (plant_id, weight, type_): (i64, f32, MeasurementType),
 ) -> HandlerResult {
-    if let Some(text) = msg.text() 
+    if let Some(text) = msg.text()
         && let Ok(date) = NaiveDate::parse_from_str(text, "%d.%m.%Y")
             .or_else(|_| NaiveDate::parse_from_str(text, "%d.%m.%y"))
-        {
-            return finalize_measurement(
-                bot,
-                dialogue,
-                msg.chat.id,
-                pool,
-                (plant_id, weight, type_, date),
-            )
-            .await;
-        }
-    
+    {
+        let date = date.and_hms_opt(0, 0, 0).unwrap();
+        let datetime_utc: DateTime<Utc> = Utc.from_local_datetime(&date).unwrap();
+
+        return finalize_measurement(
+            bot,
+            dialogue,
+            msg.chat.id,
+            pool,
+            (plant_id, weight, type_, datetime_utc),
+        )
+        .await;
+    }
 
     bot.send_message(
         msg.chat.id,

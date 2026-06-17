@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO watering_config\n         (plant_id, wet_weight, dry_weight, threshold_pct, is_active)\n         VALUES ($1, $2, $3, $4, true)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8",
+        "Float4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "613d74003a3150903ae2d3200f009a43eecfb52b694711d5d11d08d018735d3f"
+}

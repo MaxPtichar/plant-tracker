@@ -1,45 +1,36 @@
--- 1. сначала дропаем
+
+
+ALTER TABLE watering_config ADD COLUMN learned_daily_loss REAL;
+
+
 DROP TABLE IF EXISTS measurements CASCADE;
 DROP TABLE IF EXISTS pot_configs CASCADE;
 DROP TABLE IF EXISTS plants CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
-
 -- 2. создаём с новыми полями сразу
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS  users (
     id BIGINT PRIMARY KEY,
     username TEXT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    latitude DOUBLE PRECISION,
-    longitude DOUBLE PRECISION,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE plants (
+CREATE TABLE IF NOT EXISTS   plants (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    plants_name TEXT NOT NULL,
-    plant_type TEXT NOT NULL DEFAULT 'Regular' 
-        CHECK (plant_type IN ('Regular', 'Succulent', 'Tropical')),
-    light_level TEXT NOT NULL DEFAULT 'window'
-        CHECK (light_level IN ('window', 'shadow')),
-    air_circulation TEXT NOT NULL DEFAULT 'normal'
-        CHECK (air_circulation IN ('normal', 'stagnant')),
-    transpiration_coef REAL NOT NULL DEFAULT 1.0,
-    avg_r REAL DEFAULT 0.0,
-    cycles_count INT NOT NULL DEFAULT 0
+    plants_name TEXT NOT NULL
 );
 
-CREATE TABLE pot_configs (
+CREATE TABLE IF NOT EXISTS  watering_config (
     id BIGSERIAL PRIMARY KEY,
     plant_id BIGINT NOT NULL REFERENCES plants(id) ON DELETE CASCADE,
-    pot_weight BIGINT NOT NULL,
-    dry_soil_weight BIGINT NOT NULL,
-    is_active BOOLEAN NOT NULL DEFAULT TRUE,
-    pot_diameter_cm REAL NOT NULL DEFAULT 16.0,
-    soil_type TEXT NOT NULL DEFAULT 'universal' 
-        CHECK (soil_type IN ('universal', 'succulent', 'tropical'))
+    wet_weight BIGINT NOT NULL,
+    dry_weight BIGINT NOT NULL,
+    threshold_pct REAL NOT NULL DEFAULT 0.30,       
+    learned_threshold_pct REAL,                      
+    is_active BOOLEAN NOT NULL DEFAULT TRUE
 );
 
-CREATE TABLE measurements (
+CREATE TABLE IF NOT EXISTS  measurements (
     id BIGSERIAL PRIMARY KEY,
     plant_id BIGINT NOT NULL REFERENCES plants(id) ON DELETE CASCADE, 
     weight REAL NOT NULL,

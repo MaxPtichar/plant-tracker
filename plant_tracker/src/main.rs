@@ -1,17 +1,23 @@
-mod analytics;
+// mod analytics;
 mod bot;
-mod constants;
+
 mod db_operations;
 mod models;
-mod operations;
-mod weather;
 
-mod analytics_new;
-use axum::{routing::get, Router};
+// mod analytics_new;
+mod analytycs_v2;
+
+use axum::{Router, routing::get};
 #[tokio::main]
 async fn main() {
-    tokio::spawn(async {
-        println!("Bot started");
+    tracing_subscriber::fmt().with_max_level(tracing::Level::WARN).init();
+
+    
+    // tracing::info!("Bot has started...");
+    // bot::plant_bot().await; 
+
+     tokio::spawn(async {
+         tracing::info!("Bot has started...");
         bot::plant_bot().await;
     });
 

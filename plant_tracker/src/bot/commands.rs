@@ -2,14 +2,15 @@ use sqlx::PgPool;
 use teloxide::prelude::*;
 use teloxide::utils::command::BotCommands;
 
+use crate::analytycs_v2::format_last_feed;
+use crate::bot::dialogue::WateringConfigDialog;
 use crate::bot::handlers::plants::{get_all_plants_status, get_list_of_all_plants};
-use crate::bot::keyboards::{back_to_my_plants, geo_button, my_plants_menu};
+use crate::bot::keyboards::{back_to, back_to_my_plants, my_plants_menu};
 use crate::bot::keyboards::{main_menu_buttons, plant_keyboard};
 
-use crate::bot::dialogue::PotCreationDialog;
 use crate::bot::{HandlerResult, MeasurementDialogue, MyDialogue};
-use crate::db_operations;
-use crate::operations::format_last_feed;
+use crate::db_operations::{self};
+
 
 /// Bot commands available via `/` in Telegram.
 ///
@@ -28,8 +29,6 @@ pub enum Command {
     Addmeasurement,
     #[command(description = "Последняя прикормка")]
     LastFeed,
-    #[command(description = "Установить геолокацию")]
-    SetLocation,
     #[command(description = "Отменить действие")]
     Cancel,
 }
@@ -93,16 +92,6 @@ pub async fn handle_command(
             let plants = db_operations::recieve_plants_with_last_feed(&pool, msg.chat.id.0).await?;
             bot.send_message(msg.chat.id, format_last_feed(&plants))
                 .await?;
-        }
-
-        Command::SetLocation => {
-            dialogue.update(MeasurementDialogue::WaitLocation).await?;
-            bot.send_message(
-                msg.chat.id,
-                "Геолокация нужна для определения температуры в вашем городе!",
-            )
-            .reply_markup(geo_button())
-            .await?;
         }
 
         Command::Cancel => {
@@ -191,7 +180,7 @@ pub async fn handle_menu_buttons(
                 .await?;
         }
 
-        "CreatePot" => {
+        "WateringConfig" => {
             let plants = db_operations::get_user_plants(&pool, chat_id_i64).await?;
             if plants.is_empty() {
                 bot.send_message(chat_id, "Пока еще нет ни одного растения🌱")
@@ -200,8 +189,8 @@ pub async fn handle_menu_buttons(
                 return Ok(());
             }
             dialogue
-                .update(MeasurementDialogue::CreatingPot(
-                    PotCreationDialog::ChoosePlantName,
+                .update(MeasurementDialogue::WateringConfig(
+                    WateringConfigDialog::ChoosePlantName,
                 ))
                 .await?;
             bot.send_message(chat_id, "Выбери растение: ")
@@ -215,27 +204,36 @@ pub async fn handle_menu_buttons(
                     super::PlantCreationDialogue::WaitingForName,
                 ))
                 .await?;
-            bot.send_message(chat_id, "Введите название растения")
+            bot.send_message(chat_id, "🪴 Добавление нового растения\nВведите его название:")
                 .await?;
         }
 
         "status" => {
+
             let text = get_all_plants_status(&pool, chat_id.0).await?;
             bot.send_message(chat_id, text).await?;
         }
 
         "Addmeasurement" => {
+
+
+
             let plants = db_operations::get_user_plants(&pool, chat_id_i64).await?;
+            
             if plants.is_empty() {
                 bot.send_message(chat_id, "Пока еще нет ни одного растения🌱")
                     .await?;
                 dialogue.exit().await?;
                 return Ok(());
             }
+
+          
+
             dialogue
                 .update(MeasurementDialogue::WaitingForPlant)
                 .await?;
-            bot.send_message(chat_id, "Выбери растение: ")
+
+            bot.send_message(chat_id, "Выберите растение: ")
                 .reply_markup(plant_keyboard(&plants, "Start"))
                 .await?;
         }
@@ -243,7 +241,9 @@ pub async fn handle_menu_buttons(
         "LastFeed" => {
             let plants = db_operations::recieve_plants_with_last_feed(&pool, chat_id.0).await?;
             let text = format_last_feed(&plants);
-            bot.send_message(chat_id, text).await?;
+            bot.send_message(chat_id, text)
+                .reply_markup(back_to())
+                .await?;
         }
 
         "Cancel" => {

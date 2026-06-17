@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n    UPDATE watering_config SET learned_daily_loss = $1 WHERE plant_id = $2 AND is_active = true\n    ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Float4",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2b939f0c0250ca6b175f50fd47bc0c6a0451435d62919330541175179db432fa"
+}

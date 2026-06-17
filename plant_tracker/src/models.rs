@@ -1,6 +1,6 @@
 use core::fmt;
 
-use chrono::NaiveDate;
+use chrono::{DateTime, Utc};
 use serde::Deserialize;
 use sqlx::FromRow;
 /// Measurement type stored in the `measurements` table.
@@ -43,6 +43,15 @@ impl fmt::Display for MeasurementType {
     }
 }
 
+pub fn format_measurement_type(m_type: &str) -> &str {
+    match m_type {
+        "Regular" => "Обычный вес",
+        "AfterWatering" => "После полива",
+        "AfterWateringWithFeed" => "С прикормкой",
+        _ => "❓ Неизвестный тип", // На случай, если в базе появится что-то новое
+    }
+}
+
 /// Query result joining `plants` and `measurements`.
 ///
 /// Used to display the last feed-watering date per plant.
@@ -50,7 +59,7 @@ impl fmt::Display for MeasurementType {
 #[derive(Debug, FromRow)]
 pub struct PlantWithLastFeedWatering {
     pub plants_name: String,
-    pub date: Option<NaiveDate>,
+    pub date: Option<DateTime<Utc>>,
 }
 
 /// Telegram user identified by `chat_id`.
@@ -60,17 +69,11 @@ pub struct User {
     pub id: i64,
 }
 
-/// Telegram user's geolocation. Need for weather API.
-#[derive(Debug, FromRow)]
-pub struct UsersGeo {
-    pub latitude: Option<f64>,
-    pub longitude: Option<f64>,
-}
-
 #[derive(Debug, FromRow)]
 pub struct Plant {
     pub id: i64,
     pub plants_name: String,
+
 }
 
 /// A single weight measurement for a plant.
@@ -78,7 +81,7 @@ pub struct Plant {
 pub struct Measurements {
     /// Measured weight of the pot in grams.
     pub weight: f32,
-    pub date: NaiveDate,
+    pub date: DateTime<Utc>,
 }
 
 /// Represents the urgency of the next watering for a plant.
@@ -170,16 +173,20 @@ impl fmt::Display for WateringStatus {
 
 /// Plant details joined with active pot config and last measurement date.
 /// Used to render the plant list screen ([`get_list_of_all_user_plants`]).
+///
 #[derive(Debug, FromRow)]
 pub struct PlantDetails {
+    pub id: i64,
     pub plants_name: String,
     /// Weight of the empty pot in grams. `None` if no pot config exists.
-    pub pot_weight: i64,
+    pub wet_weight: Option<i64>,
     /// Weight of fully dry soil in grams. `None` if no pot config exists.
-    pub dry_soil_weight: i64,
+    pub dry_weight: Option<i64>,
     /// Date of the most recent measurement of any type.
     /// `None` if no measurements have been recorded yet.
-    pub last_measurement_date: Option<NaiveDate>,
+    pub threshold_pct: Option<f32>,
+
+    pub learned_daily_loss: Option<f32>,
 }
 
 /// A single measurement record joined with the plant name.
@@ -188,41 +195,16 @@ pub struct PlantDetails {
 pub struct PlantMeasurementsHistory {
     /// Measured weight of the pot in grams.
     pub weight: f32,
-    pub date: NaiveDate,
+    pub date: DateTime<Utc>,
     /// String representation of [`MeasurementType`].
     pub measuring_type: String,
 }
 
-#[derive(Debug, serde::Serialize, sqlx::FromRow)]
-pub struct PlantFullContext {
-    // Данные из таблицы plants
-    pub plant_id: i64,
-    pub plants_name: String,
-    pub plant_type: String,
-    pub light_level: String,
-    pub air_circulation: String,
-    pub transpiration_coef: f32,
-    pub avg_r: Option<f32>,
-    pub cycles_count: i32,
-
-    // Данные из таблицы pot_configs
-    pub pot_weight: i64,
-    pub dry_soil_weight: i64,
-    pub pot_diameter_cm: f32,
-    pub soil_type: String,
-
-    // Те самые замеры из таблицы measurements
-    pub current_weight: Option<f32>,
-    pub last_watering_weight: Option<f32>,
-    pub last_watering_date: Option<NaiveDate>,
-    pub water_threshold: f32,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct Temperature {
-    pub temperature_2m: f32,
-}
-#[derive(Debug, Deserialize)]
-pub struct WeatherResponse {
-    pub current: Temperature,
+#[derive(Debug, FromRow)]
+pub struct PlantsMeasurement30 {
+    pub id: i64,
+    pub weight: f32,
+    pub date: DateTime<Utc>,
+    /// String representation of [`MeasurementType`].
+    pub measuring_type: String,
 }

@@ -2,17 +2,14 @@ pub use super::dialogue::{MeasurementDialogue, PlantCreationDialogue};
 
 use crate::bot::callbacks::cancel_callback;
 use crate::bot::commands::handle_menu_buttons;
-use crate::bot::dialogue::PotCreationDialog;
+use crate::bot::dialogue::WateringConfigDialog;
 use crate::bot::handlers::delete_plants::{receive_answer, receive_plant_for_delete};
-use crate::bot::handlers::geo_data::recieve_geo;
+
 use crate::bot::handlers::measurement::{receive_custom_date, receive_plant};
 use crate::bot::handlers::measurements_record::receive_plant_for_record;
-use crate::bot::handlers::plant_creation::{
-    get_air_circ, get_light_level, get_plant_name, get_plant_type,
-};
-use crate::bot::handlers::pot_creation::{
-    receive_dry_soil_weight, receive_plant_for_pot, receive_pot_diameter, receive_soil_type,
-    recieve_pot_weight,
+use crate::bot::handlers::plant_creation::get_plant_name;
+use crate::bot::handlers::water_config_creation::{
+    receive_dry_soil_weight, receive_plant_for_config, receive_threshold_pct, recieve_wet_weight,
 };
 use crate::bot::handlers::{receive_date, receive_type, receive_weight};
 
@@ -39,8 +36,7 @@ pub fn message_branches()
             .endpoint(receive_custom_date),
         )
         .branch(plant_creation_message_branches())
-        .branch(pot_creation_message_branches())
-        .branch(dptree::case![MeasurementDialogue::WaitLocation].endpoint(recieve_geo))
+        .branch(water_config_message_branches())
 }
 
 fn plant_creation_message_branches()
@@ -49,27 +45,27 @@ fn plant_creation_message_branches()
         .branch(dptree::case![PlantCreationDialogue::WaitingForName].endpoint(get_plant_name))
 }
 
-fn pot_creation_message_branches()
+fn water_config_message_branches()
 -> Handler<'static, HandlerResult, teloxide::dispatching::DpHandlerDescription> {
-    dptree::case![MeasurementDialogue::CreatingPot(inner_dialogue)]
+    dptree::case![MeasurementDialogue::WateringConfig(inner_dialogue)]
         .branch(
-            dptree::case![PotCreationDialog::WaitingForPotWeight { plant_id }]
-                .endpoint(recieve_pot_weight),
+            dptree::case![WateringConfigDialog::WaitingWetWeight { plant_id }]
+                .endpoint(recieve_wet_weight),
         )
         .branch(
-            dptree::case![PotCreationDialog::WaitingForDrySoilWeight {
+            dptree::case![WateringConfigDialog::WaitingForDrySoilWeight {
                 plant_id,
-                pot_weight
+                wet_weight
             }]
             .endpoint(receive_dry_soil_weight),
         )
         .branch(
-            dptree::case![PotCreationDialog::WaitingForDiameter {
+            dptree::case![WateringConfigDialog::WaitingForThresholdPct {
                 plant_id,
-                pot_weight,
-                dry_soil_weight
+                wet_weight,
+                dry_weight
             }]
-            .endpoint(receive_pot_diameter),
+            .endpoint(receive_threshold_pct),
         )
 }
 
@@ -79,11 +75,16 @@ pub fn callback_branches()
         .branch(cancel_callback())
         .branch(dptree::filter(is_menu_callback).endpoint(handle_menu_buttons))
         .branch(delete_branches())
-        .branch(pot_creation_callback_branches())
-        .branch(plant_creation_callback_branches())
         .branch(measurement_branches())
+        .branch(pot_creation_callback_branches())
 }
 
+fn pot_creation_callback_branches()
+-> Handler<'static, HandlerResult, teloxide::dispatching::DpHandlerDescription> {
+    dptree::case![MeasurementDialogue::WateringConfig(inner_dialogue)].branch(
+        dptree::case![WateringConfigDialog::ChoosePlantName].endpoint(receive_plant_for_config),
+    )
+}
 fn delete_branches() -> Handler<'static, HandlerResult, teloxide::dispatching::DpHandlerDescription>
 {
     dptree::entry()
@@ -98,42 +99,6 @@ fn delete_branches() -> Handler<'static, HandlerResult, teloxide::dispatching::D
         .branch(
             dptree::case![MeasurementDialogue::WaitingForPlantRecord]
                 .endpoint(receive_plant_for_record),
-        )
-}
-
-fn pot_creation_callback_branches()
--> Handler<'static, HandlerResult, teloxide::dispatching::DpHandlerDescription> {
-    dptree::case![MeasurementDialogue::CreatingPot(inner_dialogue)]
-        .branch(dptree::case![PotCreationDialog::ChoosePlantName].endpoint(receive_plant_for_pot))
-        .branch(
-            dptree::case![PotCreationDialog::WaitingForSoilType {
-                plant_id,
-                pot_weight,
-                dry_soil_weight,
-                pot_diameter_cm
-            }]
-            .endpoint(receive_soil_type),
-        )
-}
-
-fn plant_creation_callback_branches()
--> Handler<'static, HandlerResult, teloxide::dispatching::DpHandlerDescription> {
-    dptree::case![MeasurementDialogue::CreatingPlant(inner_dialogue)]
-        .branch(
-            dptree::case![PlantCreationDialogue::WaitingForPlantType { name }]
-                .endpoint(get_plant_type),
-        )
-        .branch(
-            dptree::case![PlantCreationDialogue::WaitingForLightLevel { name, plant_type }]
-                .endpoint(get_light_level),
-        )
-        .branch(
-            dptree::case![PlantCreationDialogue::WaitingForAirCirculation {
-                name,
-                plant_type,
-                light_level
-            }]
-            .endpoint(get_air_circ),
         )
 }
 
@@ -173,7 +138,7 @@ pub fn is_menu_callback(q: CallbackQuery) -> bool {
             || d == "LastFeed"
             || d == "Cancel"
             || d == "CreatePlant"
-            || d == "CreatePot"
+            || d == "WateringConfig"
             || d == "Start"
     })
 }

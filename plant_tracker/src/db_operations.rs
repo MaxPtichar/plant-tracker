@@ -1,8 +1,8 @@
 use crate::models::{
-    Measurements, Plant, PlantDetails, PlantFullContext, PlantMeasurementsHistory,
-    PlantWithLastFeedWatering, User, UsersGeo,
+    Measurements, Plant, PlantDetails, PlantMeasurementsHistory, PlantWithLastFeedWatering, User,
 };
-use chrono::NaiveDate;
+
+use chrono::{DateTime, Utc};
 use sqlx::PgPool;
 
 /// Registers a user by their Telegram ID.
@@ -21,54 +21,42 @@ pub async fn create_user(pool: &PgPool, tg_id: i64, username: Option<&str>) -> s
 
 /// Creates a new plant for the user.
 /// Returns the id of the created plant.
-pub async fn create_new_plant(
-    pool: &PgPool,
-    user_id: i64,
-    plant_name: &str,
-    plant_type: &str,
-    light_level: &str,
-    air_circulation: &str,
-) -> sqlx::Result<i64> {
+pub async fn create_new_plant(pool: &PgPool, user_id: i64, plant_name: &str) -> sqlx::Result<i64> {
     let result = sqlx::query!(
-        "INSERT INTO plants (user_id, plants_name, plant_type, light_level, air_circulation)
-         VALUES ($1, $2, $3, $4, $5) RETURNING id",
+        "INSERT INTO plants (user_id, plants_name)
+         VALUES ($1, $2) RETURNING id",
         user_id,
         plant_name,
-        plant_type,
-        light_level,
-        air_circulation,
     )
     .fetch_one(pool)
     .await?;
 
     Ok(result.id)
 }
-/// Creates a new pot configuration for a plant.
+/// Creates a new Water configuration for a plant.
 /// Deactivates all previous configurations for this plant before inserting the new one.
-pub async fn create_pot_config(
+pub async fn create_watering_config(
     pool: &PgPool,
     plant_id: i64,
-    pot_w: i64,
-    dry_w: i64,
-    pot_diameter_cm: f32,
-    soil_type: &str,
+    wet_weight: i64,
+    dry_weight: i64,
+    threshold_pct: f32,
 ) -> sqlx::Result<()> {
     sqlx::query!(
-        "UPDATE pot_configs SET is_active = false WHERE plant_id = $1",
+        "UPDATE watering_config SET is_active = false WHERE plant_id = $1",
         plant_id
     )
     .execute(pool)
     .await?;
 
     sqlx::query!(
-        "INSERT INTO pot_configs 
-         (plant_id, pot_weight, dry_soil_weight, is_active, pot_diameter_cm, soil_type)
-         VALUES ($1, $2, $3, true, $4, $5)",
+        "INSERT INTO watering_config
+         (plant_id, wet_weight, dry_weight, threshold_pct, is_active)
+         VALUES ($1, $2, $3, $4, true)",
         plant_id,
-        pot_w,
-        dry_w,
-        pot_diameter_cm,
-        soil_type
+        wet_weight,
+        dry_weight,
+        threshold_pct,
     )
     .execute(pool)
     .await?;
@@ -76,104 +64,45 @@ pub async fn create_pot_config(
     Ok(())
 }
 
+pub async fn get_daily_loss(pool: &PgPool, plant_id: i64) -> sqlx::Result<Option<f32>> {
+    let res = sqlx::query!(
+        "SELECT learned_daily_loss FROM watering_config WHERE 
+    plant_id = $1 AND is_active = true  ",
+        plant_id
+    )
+    .fetch_optional(pool)
+    .await?;
+
+    if let Some(daily_loss) = res {
+        return Ok(daily_loss.learned_daily_loss);
+    }
+
+    Ok(None)
+}
+
+pub async fn update_daily_loss(pool: &PgPool, plant_id: i64, daily_loss: f32) -> sqlx::Result<()> {
+    sqlx::query!(
+        "
+    UPDATE watering_config SET learned_daily_loss = $1 WHERE plant_id = $2 AND is_active = true
+    ",
+        daily_loss,
+        plant_id
+    )
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
 /// Returns all plants belonging to a user.
 pub async fn get_user_plants(pool: &PgPool, user_id: i64) -> sqlx::Result<Vec<Plant>> {
     sqlx::query_as!(
         Plant,
-        "SELECT id, plants_name
-         FROM plants WHERE user_id = $1",
+        "SELECT 
+            id, 
+            plants_name
+         FROM plants 
+         WHERE user_id = $1",
         user_id
-    )
-    .fetch_all(pool)
-    .await
-}
-
-//return all data that plant have
-pub async fn get_all_plant_data(
-    pool: &PgPool,
-    user_id: i64,
-    plant_id: i64,
-) -> sqlx::Result<PlantFullContext> {
-    sqlx::query_as!(
-        PlantFullContext,
-        r#"
-    SELECT 
-        p.id AS "plant_id!",
-        p.plants_name AS "plants_name!",
-        p.plant_type AS "plant_type!",
-        p.light_level AS "light_level!",
-        p.air_circulation AS "air_circulation!",
-        p.transpiration_coef AS "transpiration_coef!",
-        p.avg_r,
-        p.cycles_count AS "cycles_count!",
-        pc.pot_weight AS "pot_weight!",
-        pc.dry_soil_weight AS "dry_soil_weight!",
-        pc.pot_diameter_cm AS "pot_diameter_cm!",
-        pc.soil_type AS "soil_type!",
-        -- Добавлена запятая перед вторым подзапросом
-        (SELECT weight FROM measurements 
-         WHERE plant_id = p.id AND measuring_type = 'Regular'
-         ORDER BY date DESC LIMIT 1) AS "current_weight",
-         
-       (SELECT weight FROM measurements 
- WHERE plant_id = p.id 
-   AND (measuring_type = 'AfterWatering' OR measuring_type = 'AfterWateringWithFeed')
- ORDER BY date DESC LIMIT 1) AS "last_watering_weight",
-
-         (SELECT date FROM measurements 
-     WHERE plant_id = p.id AND (measuring_type = 'AfterWatering' or measuring_type = 'AfterWateringWithFeed')
-     ORDER BY date DESC LIMIT 1) AS "last_watering_date", 
-     p.water_threshold
-    FROM plants p
-    JOIN pot_configs pc ON p.id = pc.plant_id
-    WHERE p.user_id = $1 AND plant_id = $2 AND pc.is_active = true
-    LIMIT 1; 
-    "#,
-        user_id,
-        plant_id
-    )
-    .fetch_one(pool)
-    .await
-}
-
-//return data for all plants that user have
-pub async fn get_all_plants_data(
-    pool: &PgPool,
-    user_id: i64,
-) -> sqlx::Result<Vec<PlantFullContext>> {
-    sqlx::query_as!(
-        PlantFullContext,
-        r#"
-    SELECT 
-        p.id AS "plant_id!",
-        p.plants_name AS "plants_name!",
-        p.plant_type AS "plant_type!",
-        p.light_level AS "light_level!",
-        p.air_circulation AS "air_circulation!",
-        p.transpiration_coef AS "transpiration_coef!",
-        p.avg_r,
-        p.cycles_count AS "cycles_count!",
-        pc.pot_weight AS "pot_weight!",
-        pc.dry_soil_weight AS "dry_soil_weight!",
-        pc.pot_diameter_cm AS "pot_diameter_cm!",
-        pc.soil_type AS "soil_type!",
-        (SELECT weight FROM measurements 
-         WHERE plant_id = p.id AND measuring_type = 'Regular'
-         ORDER BY date DESC LIMIT 1) AS "current_weight",
-        (SELECT weight FROM measurements 
- WHERE plant_id = p.id 
-   AND (measuring_type = 'AfterWatering' OR measuring_type = 'AfterWateringWithFeed')
- ORDER BY date DESC LIMIT 1) AS "last_watering_weight",
-
-         (SELECT date FROM measurements 
-     WHERE plant_id = p.id AND (measuring_type = 'AfterWatering' or measuring_type = 'AfterWateringWithFeed') 
-     ORDER BY date DESC LIMIT 1) AS "last_watering_date",
-     p.water_threshold
-    FROM plants p
-    JOIN pot_configs pc ON p.id = pc.plant_id
-    WHERE p.user_id = $1 AND pc.is_active = true; 
-    "#,
-        user_id,
     )
     .fetch_all(pool)
     .await
@@ -184,15 +113,14 @@ pub async fn create_measurement(
     pool: &PgPool,
     plant_id: i64,
     weight: f32,
-    date: NaiveDate,
+    date: chrono::DateTime<chrono::Utc>, // СТРОГО DateTime<Utc>
     measuring_type: String,
 ) -> sqlx::Result<()> {
     sqlx::query!(
-        "INSERT INTO measurements (plant_id, weight, date, measuring_type) VALUES
-    ($1, $2, $3, $4)",
+        "INSERT INTO measurements (plant_id, weight, date, measuring_type) VALUES ($1, $2, $3, $4)",
         plant_id,
         weight,
-        date,
+        date, // Теперь они совпадут!
         measuring_type
     )
     .execute(pool)
@@ -265,18 +193,40 @@ pub async fn get_list_of_all_user_plants(
     pool: &PgPool,
     chat_id: i64,
 ) -> sqlx::Result<Vec<PlantDetails>> {
-    sqlx::query_as!(
-        PlantDetails,
-        "SELECT p.plants_name, pot.pot_weight, pot.dry_soil_weight,
-MAX(m.date) as last_measurement_date FROM plants p 
-LEFT JOIN measurements m ON p.id = m.plant_id
-LEFT JOIN pot_configs pot ON p.id = pot.plant_id AND pot.is_active = true
-WHERE p.user_id = $1
-GROUP BY p.id, p.plants_name, pot.pot_weight, pot.dry_soil_weight",
-        chat_id
+    sqlx::query_as::<_, PlantDetails>(
+        "SELECT 
+        p.id,
+        p.plants_name, 
+        w.wet_weight,
+        w.dry_weight, 
+        COALESCE(w.learned_threshold_pct, w.threshold_pct) AS threshold_pct,
+         w.learned_daily_loss
+FROM plants p
+LEFT JOIN watering_config w ON p.id = w.plant_id AND w.is_active = true
+WHERE p.user_id = $1",
+       
     )
+    .bind(chat_id)
     .fetch_all(pool)
     .await
+}
+
+pub async fn check_water_config(
+    pool: &PgPool,
+    plant_id: i64,
+) -> sqlx::Result<bool> {
+    let exists = sqlx::query_scalar!(
+        "SELECT EXISTS(SELECT 1 FROM watering_config WHERE plant_id = $1 )",
+
+        plant_id
+    )
+    .fetch_one(pool)
+    .await?;
+
+
+    Ok(exists.unwrap_or(false))
+    
+    
 }
 
 /// Returns the last 20 measurements for a plant, newest first.
@@ -292,8 +242,8 @@ pub async fn get_measurement_record_20(
 FROM measurements m
 LEFT JOIN plants p ON p.id = m.plant_id
 WHERE p.id = $1 AND p.user_id = $2
-ORDER BY m.date, m.id DESC
-LIMIT 20;",
+ORDER BY m.date DESC, m.id DESC
+LIMIT 30;",
         plant_id,
         chat_id
     )
@@ -301,57 +251,31 @@ LIMIT 20;",
     .await
 }
 
-/// Updates avg_r, transpiration_coef and cycles_count after a completed watering cycle.
-/// Called when a new AfterWatering measurement is added.
-pub async fn update_plant_after_cycle(
+pub async fn get_last_after_watering(
     pool: &PgPool,
     plant_id: i64,
-    new_avg_r: f32,
-    new_transpiration_coef: f32,
-    new_water_threshold: f32,
-) -> sqlx::Result<()> {
-    sqlx::query!(
-        "UPDATE plants SET
-         avg_r = $1,
-         transpiration_coef = $2,
-         cycles_count = cycles_count + 1, 
-         water_threshold = $4
-         WHERE id = $3",
-        new_avg_r,
-        new_transpiration_coef,
-        plant_id,
-        new_water_threshold
-    )
-    .execute(pool)
-    .await?;
-
-    Ok(())
-}
-
-/// Returns Regular measurements after the last AfterWatering, newest first.
-/// Used for current cycle evaporation rate calculation.
-pub async fn get_regular_after_last_watering(
-    pool: &PgPool,
-    plant_id: i64,
-) -> sqlx::Result<Vec<Measurements>> {
-    sqlx::query_as!(
-        Measurements,
-        "SELECT weight, date
-FROM measurements
-WHERE plant_id = $1
-  AND measuring_type = 'Regular'
-  AND date > COALESCE(
-      (SELECT MAX(date) FROM measurements
-       WHERE plant_id = $1
-         AND (measuring_type = 'AfterWatering'
-              OR measuring_type = 'AfterWateringWithFeed')),
-      '1970-01-01'
-  )
-ORDER BY date DESC, id DESC",
+) -> sqlx::Result<Option<(f32, DateTime<Utc>)>> {
+    let res = sqlx::query!(
+        "
+    SELECT weight, date
+    FROM measurements
+    WHERE plant_id = $1 AND
+    measuring_type = 'AfterWatering' OR 
+    measuring_type = 'AfterWateringWithFeed'
+    ORDER BY date DESC
+    LIMIT 1
+    
+    ",
         plant_id
     )
-    .fetch_all(pool)
-    .await
+    .fetch_optional(pool)
+    .await?;
+
+    if let Some(row) = res {
+        return Ok(Some((row.weight, row.date)));
+    }
+
+    Ok(None)
 }
 
 pub async fn get_last_regular_before_watering(
@@ -378,32 +302,15 @@ pub async fn get_last_regular_before_watering(
     .await
 }
 
-pub async fn get_all_users_geo(pool: &PgPool) -> sqlx::Result<Vec<UsersGeo>> {
-    let users_with_geo = sqlx::query_as!(
-        UsersGeo,
-        "SELECT latitude, longitude FROM users WHERE latitude IS NOT NULL"
+pub async fn get_last_measurement(pool: &PgPool, plant_id: i64) -> sqlx::Result<(f32, DateTime<Utc>)> {
+    let res = sqlx::query!(
+        "SELECT weight, date FROM measurements WHERE id = (
+    SELECT id FROM measurements WHERE plant_id = $1 ORDER BY date DESC LIMIT 1 )",
+        plant_id
     )
-    .fetch_all(pool)
+    .fetch_one(pool)
     .await?;
-    Ok(users_with_geo)
+
+    Ok((res.weight, res.date))
 }
 
-pub async fn create_geo(
-    pool: &PgPool,
-    latitude: f64,
-    longitude: f64,
-    user_id: i64,
-) -> sqlx::Result<()> {
-    sqlx::query!(
-        "UPDATE users SET
-        latitude = $1, 
-        longitude = $2 
-        WHERE id = $3",
-        latitude,
-        longitude,
-        user_id
-    )
-    .execute(pool)
-    .await?;
-    Ok(())
-}

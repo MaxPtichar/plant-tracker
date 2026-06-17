@@ -1,4 +1,4 @@
-use chrono::{Days, Local, NaiveDate};
+use chrono::{DateTime, Days, Local, NaiveDate, Utc};
 
 use teloxide::prelude::*;
 
@@ -16,7 +16,7 @@ use crate::models::MeasurementType;
 /// # Returns
 /// - `Some(date)` — successfully parsed
 /// - `None` — unrecognized format
-pub fn parse_date(q: &str) -> Option<NaiveDate> {
+pub fn parse_date(q: &str) -> Option<DateTime<Utc>> {
     match q {
         "today" => Some(get_current_date()),
         "yesterday" => Some(get_yesterday_date()),
@@ -55,7 +55,7 @@ pub fn cancel_callback()
             dialogue.exit().await?;
             let chat_id = q.message.as_ref().unwrap().chat().id;
             bot.answer_callback_query(q.id).await?;
-            bot.send_message(chat_id, "Действие отменено. Возвращаюсь в меню.")
+            bot.send_message(chat_id, "Возвращаюсь в меню.")
                 .reply_markup(main_menu_buttons())
                 .await?;
 
@@ -64,10 +64,10 @@ pub fn cancel_callback()
     )
 }
 
-fn get_current_date() -> NaiveDate {
-    Local::now().date_naive()
+fn get_current_date() -> DateTime<Utc> {
+    Utc::now()
 }
-fn get_yesterday_date() -> NaiveDate {
+fn get_yesterday_date() -> DateTime<Utc> {
     let today = get_current_date();
 
     today.checked_sub_days(Days::new(1)).unwrap()

@@ -3,7 +3,7 @@ use teloxide::prelude::*;
 
 use crate::{
     bot::{HandlerResult, MeasurementDialogue, MyDialogue, keyboards::back_to_my_plants},
-    db_operations,
+    db_operations, models::format_measurement_type,
 };
 
 /// Handles plant selection for viewing measurement history.
@@ -30,7 +30,7 @@ pub async fn receive_plant_for_record(
 
         bot.send_message(
             chat_id,
-            format!("☘️ {plant_name}\n\nИстория последних 20 измерений:\n\n{text}"),
+            format!("☘️ {plant_name}\n\n{text}"),
         )
         .reply_markup(back_to_my_plants())
         .await?;
@@ -57,12 +57,23 @@ pub async fn get_list_of_measurements_20(
     if measurements.is_empty() {
         return Ok("Нет измерений 📊".to_string());
     }
-
-    let result = measurements
+    let table_rows: Vec<String> = measurements
         .iter()
-        .map(|m| format!("⚖️ {} г  📅 {}  🔬 {}", m.weight, m.date, m.measuring_type,))
-        .collect::<Vec<_>>()
-        .join("\n");
+        .take(10)
+        .map(|m| {
+            format!(
+                "{} │ {:<21} │{:>4} г",
+                m.date.format("%d.%m"),
+                format_measurement_type(&m.measuring_type),
+                m.weight
+            )
+        })
+        .collect();
+
+    let result = format!(
+        "История замеров (последние 10):\n\n \n{}\n",
+        table_rows.join("\n")
+    );
 
     Ok(result)
 }

@@ -1,9 +1,11 @@
+use anyhow::Context;
+use chrono::{DateTime, Utc};
 use sqlx::PgPool;
 
 use crate::{
-    analytics_new::{days_until_watering_full, get_outdoor_temp},
-    db_operations,
-    models::{PlantFullContext, watering_status},
+    analytycs_v2::{daily_water_loss, days_until_watering, watering_point},
+    db_operations::{self, get_last_measurement},
+    models::{PlantMeasurementsHistory, watering_status},
 };
 
 /// Returns a formatted watering status string for all user's plants.
@@ -19,82 +21,99 @@ use crate::{
 /// - `"не настроено"` if no active pot config or no watering recorded
 /// - `"Пока еще нет ни одного растения🌱"` if user has no plants
 pub async fn get_all_plants_status(pool: &PgPool, chat_id: i64) -> sqlx::Result<String> {
-    let plants = db_operations::get_all_plants_data(pool, chat_id).await?;
+    let plants = db_operations::get_list_of_all_user_plants(pool, chat_id).await?;
     if plants.is_empty() {
         return Ok("Пока еще нет ни одного растения🌱".to_string());
     }
 
     let mut result: Vec<String> = Vec::new();
-    let temp_outdoor = get_outdoor_temp();
+    let mut show_calibration_hint = false;
 
-    for plant in &plants {
-        let PlantFullContext {
-            current_weight: _,
-            last_watering_weight,
-            last_watering_date,
-            pot_weight,
-            dry_soil_weight,
-            soil_type,
-            plant_type,
-            light_level,
-            air_circulation,
-            pot_diameter_cm,
-            transpiration_coef,
-            avg_r,
-            cycles_count,
-            plants_name,
-            plant_id,
-            water_threshold,
-            ..
-        } = &plant;
-      
 
-        let dry_total = (pot_weight + dry_soil_weight) as f32;
-        let dry_soil_weight_g = *dry_soil_weight as f32;
+    for plant in plants {
+        let dry_weight = plant.dry_weight.unwrap();
+        let wet_weight = plant.wet_weight.unwrap();
+        let threshold_pct = plant.threshold_pct.unwrap();
+        let learned_daily_loss = plant.learned_daily_loss;
 
-        let regular_measurements =
-            db_operations::get_regular_after_last_watering(pool, *plant_id).await?;
-       
+        let measurements =
+            db_operations::get_measurement_record_20(pool, plant.id, chat_id).await?;
+        if measurements.is_empty() {
+            let fm = format!("🪴 {} │ нет данных", plant.plants_name);
+            result.push(fm);
+            continue;
+        }
 
-        let (after_watering_weight, avg_r) = match (last_watering_weight, avg_r) {
-            (&Some(l_watering), &Some(r)) => (l_watering, r),
-            _ => {
-                result.push(format!("{plants_name} - недостаточно данных для расчета").to_string());
+
+        let watering_point = watering_point(dry_weight, wet_weight, threshold_pct);
+        let (current_weight, last_m_date) = get_last_measurement(pool, plant.id).await?;
+    
+
+        if let Some(ldl) = learned_daily_loss {
+                let fm =
+                    format_plant_status(last_m_date, &plant.plants_name, watering_point, current_weight, ldl);
+
+                result.push(fm);
+        
+
+            
+        } else {
+            if let Some(daily_loss) = daily_water_loss(&measurements) {
+            let fm = format_plant_status(
+                last_m_date, 
+                &plant.plants_name,
+                watering_point,
+                current_weight,
+                daily_loss,
+
+                
+            );
+            result.push(fm);
+            
+            } else {
+                let fm = format!("🪴 {} │ ⏳ Калибровка (нет замеров)", plant.plants_name);
+                show_calibration_hint = true;
+                result.push(fm);
                 continue;
             }
-        };
-
-        let days = days_until_watering_full(
-            &regular_measurements,
-            *last_watering_date,
-            after_watering_weight,
-            dry_total,
-            soil_type,
-            dry_soil_weight_g,
-            plant_type,
-            light_level,
-            air_circulation,
-            *pot_diameter_cm,
-            *transpiration_coef,
-            avg_r,
-            *cycles_count,
-            temp_outdoor,
-            *water_threshold,
-        );
-
-       
-
-        let line = match days {
-            Some(d) => format!("🌱 {} — {}", plants_name, watering_status(d)),
-            _ => format!("🌱 {} — нет данных", plants_name),
-        };
-
-        result.push(line);
+        }
     }
 
-    Ok(result.join("\n"))
+    if show_calibration_hint {
+        result.push("📌 Чтобы активировать прогноз для растений со статусом (⏳), взвесьте их один раз сразу после полива.".to_string());
+    }
+
+    Ok(result.join("\n─────────────\n"))
 }
 
+
+fn format_plant_status(
+    last_m_date: DateTime<Utc>, 
+    plants_name: &str,
+    watering_point: i64,
+    current_weight: f32,
+    daily_loss: f32,
+) -> String {
+
+    let days_since = (Utc::now().date_naive() - last_m_date.date_naive()).num_days();
+     tracing::warn!("plants_name{plants_name},current_weight {current_weight}, watering_point{watering_point} , daily_loss{daily_loss} ");
+    let watering_day = match days_until_watering(current_weight as i64, watering_point, daily_loss)   
+    {
+        Some(days) => days,
+        None => return format!("🪴 {} │ ⚠️ ошибка данных", plants_name),
+    };
+    
+    tracing::debug!("watering {}", watering_day);
+    
+    let days_untill = (watering_day - days_since).max(0) as f32;
+       tracing::debug!("days_untill {}", days_untill);
+    let status = watering_status(days_untill);
+
+    let fm = format!("🪴 {} │  {}", 
+    plants_name, status);
+
+    fm
+}
 
 /// Returns a formatted list of all user's plants with their configuration details.
 ///
@@ -116,21 +135,28 @@ pub async fn get_list_of_all_plants(pool: &PgPool, chat_id: i64) -> sqlx::Result
     let result = plants
         .iter()
         .map(|plant| {
-            format!(
-                "🌱 *{}*\n\
-         💧 Целевая влажность: {}%\n\
-         🪴 Масса горшка: {} г | Сухая земля: {} г\n\
-         📊 Последнее измерение: {}\n\
-        ",
-                plant.plants_name,
-                (0.3 * 100.0),
-                plant.pot_weight,
-                plant.dry_soil_weight,
-                plant
-                    .last_measurement_date
-                    .map(|date| date.to_string())
-                    .unwrap_or_else(|| "Нет данных".to_string()),
-            )
+            if let (Some(pct), Some(wet_weight), Some(dry_weight)) =
+                (plant.threshold_pct, plant.wet_weight, plant.dry_weight)
+            {
+                format!(
+    "🌱 **{}**\n\
+     🎯 Целевая влажность: {}%\n\
+     ───\n\
+     📊 **Калибровка веса:**\n\
+     🟢 Мокрая почва: {} г\n\
+     🟤 Сухая почва: {} г",
+                    plant.plants_name,
+                    pct * 100.0,
+                    wet_weight,
+                    dry_weight,
+                )
+            } else {
+                format!(
+    "⚙️ Конфигурация полива для **{}** отсутствует\n\n\
+     Создайте её, чтобы получать уведомления:\n\
+     /start → Мои растения → Настроить полив", plant.plants_name
+)
+            }
         })
         .collect::<Vec<_>>()
         .join("\n─────────────\n");

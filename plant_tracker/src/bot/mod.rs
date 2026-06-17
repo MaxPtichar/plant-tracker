@@ -19,7 +19,7 @@ use teloxide::utils::command::BotCommands;
 use crate::bot::commands::handle_command;
 use crate::bot::notification::chat_notification;
 use crate::bot::routing::{callback_branches, message_branches};
-use crate::weather::get_weather_scheldue;
+
 use chrono::{Local, Timelike};
 use teloxide::prelude::*;
 
@@ -67,7 +67,6 @@ pub async fn plant_bot() {
     let pool_clone = pool.clone();
 
     tokio::spawn(notification_loop(bot_clone.clone(), pool_clone.clone()));
-    tokio::spawn(get_weather_scheldue(pool_clone.clone()));
 
     bot.set_my_commands(commands::Command::bot_commands())
         .await
@@ -84,7 +83,7 @@ pub async fn plant_bot() {
             )
             .branch(message_branches())
             .branch(callback_branches());
-        println!("Starting dispatcher");
+    println!("Starting dispatcher");
     Dispatcher::builder(bot, handler)
         .dependencies(dependencies)
         .build()
@@ -92,12 +91,12 @@ pub async fn plant_bot() {
         .await;
 }
 
-/// Sends morning watering reminders to all users at 09:00.
-/// Checks every 30 seconds, sleeps 60 seconds after sending to avoid double-send.
+// / Sends morning watering reminders to all users at 09:00.
+// / Checks every 30 seconds, sleeps 60 seconds after sending to avoid double-send.
 async fn notification_loop(bot_clone: Bot, pool_clone: PgPool) {
     loop {
         let now = Local::now();
-        if now.hour() == 10 && now.minute() == 00 {
+        if now.hour() == 15 && now.minute() == 43 {
             chat_notification(&bot_clone, &pool_clone).await;
             tokio::time::sleep(Duration::from_secs(60)).await;
         }

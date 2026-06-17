@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE pot_configs SET is_active = false WHERE plant_id = $1",
+  "query": "UPDATE watering_config SET is_active = false WHERE plant_id = $1",
   "describe": {
     "columns": [],
     "parameters": {
@@ -10,5 +10,5 @@
     },
     "nullable": []
   },
-  "hash": "80ecf338234f5120d29e3282aa6d2c1a186d3c825dde17c83cf2e7dc45553cbe"
+  "hash": "add094743bedfa46a7b3509f49c4d8e384784c121d87b8d9ecf6e03d3d96ef04"
 }

@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT weight, date FROM measurements WHERE id = (\n    SELECT id FROM measurements WHERE plant_id = $1 ORDER BY date DESC LIMIT 1 )",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "weight",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 1,
+        "name": "date",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "d0c41dc271185bb62322ce0aad9b6d8eb5a29d4373ff6bef191a01377f6bf575"
+}

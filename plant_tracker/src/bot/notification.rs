@@ -3,6 +3,7 @@ use teloxide::Bot;
 use teloxide::prelude::Requester;
 use teloxide::types::ChatId;
 
+
 use crate::bot::handlers::plants::get_all_plants_status;
 use crate::db_operations;
 
@@ -17,6 +18,8 @@ use crate::db_operations;
 ///
 /// Errors per user are logged to stderr and skipped — one failing user
 /// does not interrupt notifications for others.
+
+
 pub async fn chat_notification(bot: &Bot, pool: &PgPool) {
     let users = match db_operations::get_all_users(pool).await {
         Ok(users) => users,

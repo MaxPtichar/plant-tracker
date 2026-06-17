@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO plants (user_id, plants_name, plant_type, light_level, air_circulation)\n         VALUES ($1, $2, $3, $4, $5) RETURNING id",
+  "query": "INSERT INTO plants (user_id, plants_name)\n         VALUES ($1, $2) RETURNING id",
   "describe": {
     "columns": [
       {
@@ -12,9 +12,6 @@
     "parameters": {
       "Left": [
         "Int8",
-        "Text",
-        "Text",
-        "Text",
         "Text"
       ]
     },
@@ -22,5 +19,5 @@
       false
     ]
   },
-  "hash": "b5c993033aec2f5868a02543090ff834a935ab2f40a806559027321404061864"
+  "hash": "554926cc2edc6e55bfc067de777a1a0a745b9a57f06743e4ce3233aa68276882"
 }
