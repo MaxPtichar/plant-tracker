@@ -173,7 +173,7 @@ pub async fn handle_menu_buttons(
                 .await?;
         }
 
-        "mymasurements" => {
+        "mymeasurements" => {
             let plants = db_operations::get_user_plants(&pool, chat_id_i64).await?;
             if plants.is_empty() {
                 bot.send_message(chat_id, "Пока нет растений 🌱").await?;
