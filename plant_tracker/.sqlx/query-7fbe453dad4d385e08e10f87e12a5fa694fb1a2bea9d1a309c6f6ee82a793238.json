@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n    SELECT weight, date\n    FROM measurements\n    WHERE plant_id = $1 AND\n    measuring_type = 'AfterWatering' OR \n    measuring_type = 'AfterWateringWithFeed'\n    ORDER BY date DESC\n    LIMIT 1\n    \n    ",
+  "query": "SELECT weight, date FROM measurements WHERE plant_id = $1 ORDER BY date DESC LIMIT 1 ",
   "describe": {
     "columns": [
       {
@@ -24,5 +24,5 @@
       false
     ]
   },
-  "hash": "4690d1992659fceaa83e000275d337d237d3f6b5e19fa798dd6a07e202779962"
+  "hash": "7fbe453dad4d385e08e10f87e12a5fa694fb1a2bea9d1a309c6f6ee82a793238"
 }
