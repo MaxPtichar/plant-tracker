@@ -59,7 +59,6 @@ pub fn daily_water_loss(plant: &[PlantMeasurementsHistory]) -> Option<f32> {
     Some((last_watering.weight - last_regular.weight) / days)
 }
 
-
 /// Formats a list of plants with their last feed-watering date.
 ///
 /// For each plant, shows the date and days elapsed since the last

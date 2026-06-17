@@ -23,12 +23,7 @@ use crate::bot::routing::{callback_branches, message_branches};
 use chrono::{Local, Timelike};
 use teloxide::prelude::*;
 
-use sqlx::PgPool;
-use sqlx::postgres::PgPoolOptions;
-
-pub type MyDialogue = Dialogue<MeasurementDialogue, InMemStorage<MeasurementDialogue>>;
-pub type HandlerResult = Result<(), Box<dyn std::error::Error + Send + Sync>>;
-
+use crate::prelude::*;
 /// Entry point of the bot. Initialises the database pool, starts the
 /// notification loop, registers bot commands and launches the dispatcher.
 ///

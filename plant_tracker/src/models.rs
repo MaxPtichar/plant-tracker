@@ -73,7 +73,6 @@ pub struct User {
 pub struct Plant {
     pub id: i64,
     pub plants_name: String,
-
 }
 
 /// A single weight measurement for a plant.

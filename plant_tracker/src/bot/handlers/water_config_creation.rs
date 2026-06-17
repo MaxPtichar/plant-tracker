@@ -1,3 +1,5 @@
+use std::ops::Div;
+
 use anyhow::Context;
 use sqlx::PgPool;
 use teloxide::prelude::*;
@@ -33,12 +35,12 @@ pub async fn receive_plant_for_config(
         bot.send_message(
             chat_id,
             format!(
-        "☘️ {plant_name}\n\n\
+                "☘️ {plant_name}\n\n\
          Введите вес политого растения в граммах.\n\n\
          Зачем это нужно: бот запомнит максимальный вес горшка сразу после полива. \
          Сравнивая его с последующими взвешиваниями, он поймет, как быстро испаряется вода, \
          и вовремя напомнит вам, когда земля станет сухой."
-    )
+            ),
         )
         .reply_markup(back_to_my_plants())
         .await?;
@@ -65,13 +67,11 @@ pub async fn recieve_wet_weight(
     dialogue: MyDialogue,
     plant_id: i64,
 ) -> HandlerResult {
-
     const MAX_WEIGHT: i64 = 50_000;
-
 
     match msg.text() {
         Some(text) => match text.parse::<i64>() {
-            Ok(wet_weight) if wet_weight > 0 && wet_weight <= MAX_WEIGHT =>  {
+            Ok(wet_weight) if wet_weight > 0 && wet_weight <= MAX_WEIGHT => {
                 bot.send_message(
                     msg.chat.id,
                     format!(
@@ -95,12 +95,20 @@ pub async fn recieve_wet_weight(
             }
 
             Ok(_) => {
-                bot.send_message(msg.chat.id, "⚠️ Вес должен быть числом от 1 до 50000 грамм. Попробуйте еще раз:").await?;
-        return Ok(());
+                bot.send_message(
+                    msg.chat.id,
+                    "⚠️ Вес должен быть числом от 1 до 50000 грамм. Попробуйте еще раз:",
+                )
+                .await?;
+                return Ok(());
             }
 
             Err(_) => {
-                bot.send_message(msg.chat.id, "⚠️ Пожалуйста, введите вес цифрами (например: 450). Попробуйте еще раз:").await?;
+                bot.send_message(
+                    msg.chat.id,
+                    "⚠️ Пожалуйста, введите вес цифрами (например: 450). Попробуйте еще раз:",
+                )
+                .await?;
                 return Ok(());
             }
         },
@@ -133,7 +141,7 @@ pub async fn receive_dry_soil_weight(
 ) -> HandlerResult {
     match msg.text() {
         Some(text) => match text.parse::<i64>() {
-            Ok(dry_weight) if dry_weight > 0 && dry_weight < wet_weight  => {
+            Ok(dry_weight) if dry_weight > 0 && dry_weight < wet_weight => {
                 bot.send_message(
                     msg.chat.id,
                     "
@@ -158,14 +166,14 @@ pub async fn receive_dry_soil_weight(
                     .await?;
             }
 
-            Ok(_) => { bot.send_message(
+            Ok(_) => {
+                bot.send_message(
             msg.chat.id,
             "⚠️ Некорректный вес! Число должно быть больше 0 грамм и меньше веса политого растения.\n\n\
              Пожалуйста, введите вес сухой земли еще раз:"
         )
         .await?;
-        return Ok(());
-
+                return Ok(());
             }
 
             Err(_) => {
@@ -194,7 +202,6 @@ pub async fn receive_threshold_pct(
     match msg.text() {
         Some(text) => match text.parse::<i64>() {
             Ok(threshold_pct) if threshold_pct > 0 && threshold_pct < 100 => {
-                  
                 bot.send_message(msg.chat.id, format!(
         "🎉 Полив успешно настроен!\n\n\
          📋 Итоговые настройки:\n\
@@ -207,14 +214,12 @@ pub async fn receive_threshold_pct(
                     .reply_markup(back_to())
                     .await?;
 
-              
-                
                 db_operations::create_watering_config(
                     &pool,
                     plant_id,
                     wet_weight,
                     dry_weight,
-                    threshold_pct as f32,
+                    (threshold_pct as f32).div(100.0),
                 )
                 .await?;
 
@@ -223,19 +228,19 @@ pub async fn receive_threshold_pct(
                 dialogue.exit().await?;
             }
 
-            Ok(_) => { 
+            Ok(_) => {
                 bot.send_message(
-                    msg.chat.id, 
+                    msg.chat.id,
                     "⚠️ Ошибка! Процент должен быть целым числом в диапазоне от 1 до 99.\n\n\
-                     Пожалуйста, введите корректное число:"
+                     Пожалуйста, введите корректное число:",
                 )
                 .await?;
-                return Ok(()); 
+                return Ok(());
             }
 
             Err(_) => {
                 bot.send_message(
-                    msg.chat.id, 
+                    msg.chat.id,
                     "⚠️ Пожалуйста, введите порог полива только цифрами, без знака % (например: 65).\n\n\
                      Попробуйте еще раз:"
                 )
@@ -246,8 +251,8 @@ pub async fn receive_threshold_pct(
 
         None => {
             bot.send_message(
-                msg.chat.id, 
-                "⚠️ Сообщение не содержит текста. Отправьте число от 1 до 99:"
+                msg.chat.id,
+                "⚠️ Сообщение не содержит текста. Отправьте число от 1 до 99:",
             )
             .await?;
             return Ok(());
@@ -257,9 +262,7 @@ pub async fn receive_threshold_pct(
     Ok(())
 }
 
-
-
-///Для валидации 
+///Для валидации
 pub async fn ensure_water_config(
     bot: &Bot,
     chat_id: ChatId,
@@ -267,7 +270,6 @@ pub async fn ensure_water_config(
     pool: &sqlx::PgPool,
     plant_id: i64,
 ) -> anyhow::Result<bool> {
-    
     // 1. Делаем запрос в БД с контекстом на случай ошибки связи с базой
     let has_config = crate::db_operations::check_water_config(pool, plant_id)
         .await

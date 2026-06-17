@@ -1,10 +1,9 @@
 use std::f32::consts;
 
+use anyhow::Context;
 use chrono::{DateTime, NaiveDate, TimeZone, Utc};
 use sqlx::PgPool;
 use teloxide::prelude::*;
-use anyhow::Context;
-
 
 use crate::analytycs_v2::daily_water_loss;
 use crate::bot::dialogue::WateringConfigDialog;
@@ -49,11 +48,12 @@ const ALPHA: f32 = 0.02;
 /// and prompts the user to enter weight in grams.
 ///
 /// Ignores non-numeric or missing callback data silently.
-pub async fn receive_plant(bot: Bot, q: CallbackQuery, dialogue: MyDialogue, pool: PgPool) -> HandlerResult {
-
-    
-
-
+pub async fn receive_plant(
+    bot: Bot,
+    q: CallbackQuery,
+    dialogue: MyDialogue,
+    pool: PgPool,
+) -> HandlerResult {
     if let Some(data) = q.data {
         dbg!(&data);
         let (plant_id, plant_name) = data
@@ -61,35 +61,27 @@ pub async fn receive_plant(bot: Bot, q: CallbackQuery, dialogue: MyDialogue, poo
             .map(|(id, name)| (id.parse::<i64>().unwrap(), name.to_string()))
             .unwrap();
         let config = check_water_config(&pool, plant_id).await?;
-          let chat_id = q.message.context("ChatID doesn't exists")?.chat().id;
+        let chat_id = q.message.context("ChatID doesn't exists")?.chat().id;
         if !config {
             bot.send_message(
-   chat_id, 
+   chat_id,
     format!(
         "⚠️ Настройки полива для этого цветка еще не заданы.\n\
          Чтобы бот мог правильно рассчитывать влажность почвы и присылать напоминания, нам нужно провести быструю калибровку.\n\n\
          ⚖️ Пожалуйста, введите вес ПОЛИТОГО растения в граммах (например: 1250):", 
-        
     )
-
-    
 )
 .await?;
-dialogue
-            .update(MeasurementDialogue::WateringConfig(
-                WateringConfigDialog::WaitingWetWeight { plant_id },
-            ))
-            .await?;
-        return  Ok(());
-
-    }
-    
-        
-
+            dialogue
+                .update(MeasurementDialogue::WateringConfig(
+                    WateringConfigDialog::WaitingWetWeight { plant_id },
+                ))
+                .await?;
+            return Ok(());
+        }
 
         bot.answer_callback_query(q.id).await?;
 
-      
         bot.send_message(
             chat_id,
             format!("☘️ {plant_name}\n\nВведите текущий вес растения в граммах:"),
@@ -286,6 +278,8 @@ pub async fn finalize_measurement(
                 tracing::info!("Daily loss is updated.")
             }
         }
+
+        
     }
 
     dialogue

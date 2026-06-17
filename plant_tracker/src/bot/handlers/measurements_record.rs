@@ -3,7 +3,8 @@ use teloxide::prelude::*;
 
 use crate::{
     bot::{HandlerResult, MeasurementDialogue, MyDialogue, keyboards::back_to_my_plants},
-    db_operations, models::format_measurement_type,
+    db_operations,
+    models::format_measurement_type,
 };
 
 /// Handles plant selection for viewing measurement history.
@@ -28,12 +29,9 @@ pub async fn receive_plant_for_record(
 
         let text = get_list_of_measurements_20(&pool, chat_id.0, plant_id).await?;
 
-        bot.send_message(
-            chat_id,
-            format!("☘️ {plant_name}\n\n{text}"),
-        )
-        .reply_markup(back_to_my_plants())
-        .await?;
+        bot.send_message(chat_id, format!("☘️ {plant_name}\n\n{text}"))
+            .reply_markup(back_to_my_plants())
+            .await?;
 
         dialogue
             .update(MeasurementDialogue::WaitingForPlantRecord)
