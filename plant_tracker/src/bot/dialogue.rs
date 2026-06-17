@@ -29,7 +29,14 @@ pub enum MeasurementDialogue {
     WaitingForPlantDelete,
 
     /// Plant selected for deletion. Waiting for confirmation (`"ConfirmDelete"` or `"MyPlants"`).
-    WaitingForConfirmDelete { plant_id: i64 },
+    WaitingForConfirmDelete {
+        plant_id: i64,
+    },
+
+    WaitingForMeasurementDelete,
+    WaitingForConfirmMeasurementDelete {
+        plant_id: i64,
+    },
 
     /// Pot configuration sub-FSM. See [`PotCreationDialog`].
     WateringConfig(WateringConfigDialog),
@@ -39,11 +46,17 @@ pub enum MeasurementDialogue {
     CreatingPlant(PlantCreationDialogue),
 
     /// Plant selected. Waiting for weight input (grams, float).
-    WaitingForWeight { plant_id: i64, plant_name: String },
+    WaitingForWeight {
+        plant_id: i64,
+        plant_name: String,
+    },
 
     /// Weight collected. Waiting for measurement type selection
     /// via inline keyboard ([`MeasurementType`]).
-    WaitingForType { plant_id: i64, weight: f32 },
+    WaitingForType {
+        plant_id: i64,
+        weight: f32,
+    },
 
     /// Type collected. Waiting for date selection via inline keyboard.
     WaitingForDate {

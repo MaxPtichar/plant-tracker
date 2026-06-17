@@ -58,6 +58,10 @@ pub fn my_plants_menu() -> InlineKeyboardMarkup {
             "🪏 Удалить растение",
             "DeletePlant",
         )],
+        vec![InlineKeyboardButton::callback(
+            "🗑 Удалить последнее измерение",
+            "DeleteLastMeasurement",
+        )],
         vec![InlineKeyboardButton::callback("↩︎ Назад", "Start")],
     ])
 }

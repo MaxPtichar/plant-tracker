@@ -64,6 +64,17 @@ pub async fn create_watering_config(
     Ok(())
 }
 
+pub async fn set_daily_loss_to_null(pool: &PgPool, plant_id: i64) -> sqlx::Result<()> {
+    sqlx::query!(
+        "UPDATE watering_config SET learned_daily_loss = NULL WHERE plant_id = $1 AND is_active = true",
+        plant_id
+    )
+    .execute(pool)
+    .await?;
+
+    Ok(())
+}
+
 pub async fn get_daily_loss(pool: &PgPool, plant_id: i64) -> sqlx::Result<Option<f32>> {
     let res = sqlx::query!(
         "SELECT learned_daily_loss FROM watering_config WHERE 
@@ -171,7 +182,6 @@ pub async fn delete_plant(pool: &PgPool, plant_id: i64) -> sqlx::Result<()> {
 }
 
 /// Deletes the most recent measurement for a plant (used for /undo).
-#[allow(dead_code)]
 pub async fn delete_last_measurement(pool: &PgPool, plant_id: i64) -> sqlx::Result<()> {
     sqlx::query!(
         "DELETE FROM measurements WHERE id = (
@@ -204,29 +214,21 @@ pub async fn get_list_of_all_user_plants(
 FROM plants p
 LEFT JOIN watering_config w ON p.id = w.plant_id AND w.is_active = true
 WHERE p.user_id = $1",
-       
     )
     .bind(chat_id)
     .fetch_all(pool)
     .await
 }
 
-pub async fn check_water_config(
-    pool: &PgPool,
-    plant_id: i64,
-) -> sqlx::Result<bool> {
+pub async fn check_water_config(pool: &PgPool, plant_id: i64) -> sqlx::Result<bool> {
     let exists = sqlx::query_scalar!(
         "SELECT EXISTS(SELECT 1 FROM watering_config WHERE plant_id = $1 )",
-
         plant_id
     )
     .fetch_one(pool)
     .await?;
 
-
     Ok(exists.unwrap_or(false))
-    
-    
 }
 
 /// Returns the last 20 measurements for a plant, newest first.
@@ -260,8 +262,8 @@ pub async fn get_last_after_watering(
     SELECT weight, date
     FROM measurements
     WHERE plant_id = $1 AND
-    measuring_type = 'AfterWatering' OR 
-    measuring_type = 'AfterWateringWithFeed'
+    (measuring_type = 'AfterWatering' OR 
+    measuring_type = 'AfterWateringWithFeed')
     ORDER BY date DESC
     LIMIT 1
     
@@ -302,15 +304,20 @@ pub async fn get_last_regular_before_watering(
     .await
 }
 
-pub async fn get_last_measurement(pool: &PgPool, plant_id: i64) -> sqlx::Result<(f32, DateTime<Utc>)> {
+pub async fn get_last_measurement(
+    pool: &PgPool,
+    plant_id: i64,
+) -> sqlx::Result<Option<(f32, DateTime<Utc>)>> {
     let res = sqlx::query!(
-        "SELECT weight, date FROM measurements WHERE id = (
-    SELECT id FROM measurements WHERE plant_id = $1 ORDER BY date DESC LIMIT 1 )",
+        "SELECT weight, date FROM measurements WHERE plant_id = $1 ORDER BY date DESC LIMIT 1 ",
         plant_id
     )
-    .fetch_one(pool)
+    .fetch_optional(pool)
     .await?;
 
-    Ok((res.weight, res.date))
+    if let Some(data) = res {
+        return Ok(Some((data.weight, data.date)));
+    } else {
+        return Ok(None);
+    }
 }
-

@@ -11,7 +11,6 @@ use crate::bot::keyboards::{main_menu_buttons, plant_keyboard};
 use crate::bot::{HandlerResult, MeasurementDialogue, MyDialogue};
 use crate::db_operations::{self};
 
-
 /// Bot commands available via `/` in Telegram.
 ///
 /// Callback-only actions (`CreatePot`, `CreatePlant`, etc.) are handled
@@ -204,30 +203,27 @@ pub async fn handle_menu_buttons(
                     super::PlantCreationDialogue::WaitingForName,
                 ))
                 .await?;
-            bot.send_message(chat_id, "🪴 Добавление нового растения\nВведите его название:")
-                .await?;
+            bot.send_message(
+                chat_id,
+                "🪴 Добавление нового растения\nВведите его название:",
+            )
+            .await?;
         }
 
         "status" => {
-
             let text = get_all_plants_status(&pool, chat_id.0).await?;
             bot.send_message(chat_id, text).await?;
         }
 
         "Addmeasurement" => {
-
-
-
             let plants = db_operations::get_user_plants(&pool, chat_id_i64).await?;
-            
+
             if plants.is_empty() {
                 bot.send_message(chat_id, "Пока еще нет ни одного растения🌱")
                     .await?;
                 dialogue.exit().await?;
                 return Ok(());
             }
-
-          
 
             dialogue
                 .update(MeasurementDialogue::WaitingForPlant)
@@ -249,6 +245,23 @@ pub async fn handle_menu_buttons(
         "Cancel" => {
             dialogue.exit().await?;
             bot.send_message(chat_id, "Отменено").await?;
+        }
+
+        "DeleteLastMeasurement" => {
+            let plants = db_operations::get_user_plants(&pool, chat_id_i64).await?;
+            if plants.is_empty() {
+                bot.send_message(chat_id, "Пока нет растений 🌱").await?;
+                return Ok(());
+            }
+            dialogue
+                .update(MeasurementDialogue::WaitingForMeasurementDelete)
+                .await?;
+            bot.send_message(
+                chat_id,
+                "\nВыбери растение для того, чтобы удалить последнее измерение.",
+            )
+            .reply_markup(plant_keyboard(&plants, "MyPlants"))
+            .await?;
         }
 
         _ => {}

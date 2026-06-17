@@ -3,6 +3,9 @@ pub use super::dialogue::{MeasurementDialogue, PlantCreationDialogue};
 use crate::bot::callbacks::cancel_callback;
 use crate::bot::commands::handle_menu_buttons;
 use crate::bot::dialogue::WateringConfigDialog;
+use crate::bot::handlers::delete_last_measure::{
+    receive_answer_measurement, receive_plant_for_delete_measurement,
+};
 use crate::bot::handlers::delete_plants::{receive_answer, receive_plant_for_delete};
 
 use crate::bot::handlers::measurement::{receive_custom_date, receive_plant};
@@ -77,6 +80,7 @@ pub fn callback_branches()
         .branch(delete_branches())
         .branch(measurement_branches())
         .branch(pot_creation_callback_branches())
+        .branch(delete_branches_measurement())
 }
 
 fn pot_creation_callback_branches()
@@ -95,6 +99,23 @@ fn delete_branches() -> Handler<'static, HandlerResult, teloxide::dispatching::D
         .branch(
             dptree::case![MeasurementDialogue::WaitingForConfirmDelete { plant_id }]
                 .endpoint(receive_answer),
+        )
+        .branch(
+            dptree::case![MeasurementDialogue::WaitingForPlantRecord]
+                .endpoint(receive_plant_for_record),
+        )
+}
+
+fn delete_branches_measurement()
+-> Handler<'static, HandlerResult, teloxide::dispatching::DpHandlerDescription> {
+    dptree::entry()
+        .branch(
+            dptree::case![MeasurementDialogue::WaitingForMeasurementDelete]
+                .endpoint(receive_plant_for_delete_measurement),
+        )
+        .branch(
+            dptree::case![MeasurementDialogue::WaitingForConfirmMeasurementDelete { plant_id }]
+                .endpoint(receive_answer_measurement),
         )
         .branch(
             dptree::case![MeasurementDialogue::WaitingForPlantRecord]
@@ -140,5 +161,6 @@ pub fn is_menu_callback(q: CallbackQuery) -> bool {
             || d == "CreatePlant"
             || d == "WateringConfig"
             || d == "Start"
+            || d == "DeleteLastMeasurement"
     })
 }
