@@ -32,9 +32,26 @@ pub async fn get_all_plants_status(pool: &PgPool, chat_id: i64) -> sqlx::Result<
     let mut show_calibration_hint = false;
 
     for plant in plants {
-        let dry_weight = plant.dry_weight.unwrap();
-        let wet_weight = plant.wet_weight.unwrap();
-        let threshold_pct = plant.threshold_pct.unwrap();
+
+        
+
+        
+        
+        let (dry_weight, wet_weight, threshold_pct) = match (plant.dry_weight, plant.wet_weight, plant.threshold_pct) {
+            (Some(dw), Some(ww), Some(tp)) => (dw, ww, tp), 
+            _ => {
+                let fm = format!(
+                    "⚙️ Конфигурация полива для **{}** отсутствует\n\n\
+     Создайте её, чтобы получать уведомления:\n\
+     /start → Мои растения → Настроить полив",
+                    plant.plants_name
+                );
+                result.push(fm);
+
+                continue;
+            }
+        };
+
         let learned_daily_loss = plant.learned_daily_loss;
 
         let measurements =
