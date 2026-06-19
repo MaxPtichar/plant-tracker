@@ -6,7 +6,7 @@ use teloxide::utils::command::BotCommands;
 use crate::analytycs_v2::format_last_feed;
 use crate::bot::dialogue::WateringConfigDialog;
 use crate::bot::handlers::plants::{get_all_plants_status, get_list_of_all_plants};
-use crate::bot::keyboards::{back_to, back_to_my_plants, first_page, my_plants_menu};
+use crate::bot::keyboards::{back_to, back_to_my_plants, back_to_or_menu, first_page, my_plants_menu};
 use crate::bot::keyboards::{main_menu_buttons, plant_keyboard};
 
 use crate::bot::{HandlerResult, MeasurementDialogue, MyDialogue};
@@ -143,6 +143,8 @@ pub async fn handle_menu_buttons(
 
     let message  = q.message.as_ref().unwrap();
     let msg_id = message.id();
+     let plants = db_operations::get_user_plants(&pool, chat_id_i64).await?;
+
 
     match data.as_str() {
         "start" => {
@@ -174,7 +176,7 @@ pub async fn handle_menu_buttons(
         }
 
         "mymeasurements" => {
-            let plants = db_operations::get_user_plants(&pool, chat_id_i64).await?;
+          
             if plants.is_empty() {
                  bot.edit_message_text(chat_id, msg_id, "Пока нет растений 🌱")
                 .await?;
@@ -189,7 +191,7 @@ pub async fn handle_menu_buttons(
         }
 
         "deleteplant" => {
-            let plants = db_operations::get_user_plants(&pool, chat_id_i64).await?;
+           
             if plants.is_empty() {
                 bot.edit_message_text(chat_id, msg_id, "Пока нет растений 🌱").await?;
                 return Ok(());
@@ -203,7 +205,7 @@ pub async fn handle_menu_buttons(
         }
 
         "wateringconfig" => {
-            let plants = db_operations::get_user_plants(&pool, chat_id_i64).await?;
+         
             if plants.is_empty() {
                  bot.edit_message_text(chat_id, msg_id, "Пока еще нет ни одного растения🌱")
                     .await?;
@@ -241,7 +243,7 @@ pub async fn handle_menu_buttons(
         }
 
         "addmeasurement" => {
-            let plants = db_operations::get_user_plants(&pool, chat_id_i64).await?;
+           
 
             if plants.is_empty() {
                  bot.edit_message_text(chat_id, msg_id, "Пока еще нет ни одного растения🌱")
@@ -260,8 +262,8 @@ pub async fn handle_menu_buttons(
         }
 
         "lastfeed" => {
-            let plants = db_operations::recieve_plants_with_last_feed(&pool, chat_id.0).await?;
-            let text = format_last_feed(&plants);
+            let plants_last_feed = db_operations::recieve_plants_with_last_feed(&pool, chat_id.0).await?;
+            let text = format_last_feed(&plants_last_feed);
             bot.edit_message_text(chat_id, msg_id, text)
                 .reply_markup(back_to())
                 .await?;
@@ -273,7 +275,7 @@ pub async fn handle_menu_buttons(
         }
 
         "deletelastmeasurement" => {
-            let plants = db_operations::get_user_plants(&pool, chat_id_i64).await?;
+            
             if plants.is_empty() {
                 bot.edit_message_text(chat_id, msg_id,"Пока нет растений 🌱").await?;
                 return Ok(());
@@ -294,6 +296,15 @@ pub async fn handle_menu_buttons(
             let message  = q.message.as_ref().unwrap();
             let msg_id = message.id();
             bot.edit_message_text(chat_id, msg_id, fmt).await?;
+        }
+
+
+        "chooseplant" => {
+                let message  = q.message.as_ref().unwrap();
+            let msg_id = message.id();
+            bot.edit_message_text(chat_id, msg_id, "Выберите растение: ")
+             .reply_markup(plant_keyboard(&plants, "myplants"))
+            .await?;
         }
 
         

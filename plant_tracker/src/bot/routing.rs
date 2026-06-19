@@ -164,5 +164,6 @@ pub fn is_menu_callback(q: CallbackQuery) -> bool {
             || d == "start"
             || d == "deletelastmeasurement"
             || d == "help"
+            || d == "chooseplant"
     })
 }

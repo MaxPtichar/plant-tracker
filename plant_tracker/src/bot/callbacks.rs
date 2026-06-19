@@ -53,9 +53,12 @@ pub fn cancel_callback()
     dptree::filter(|q: CallbackQuery| q.data.as_deref() == Some("cancel_action")).endpoint(
         |bot: Bot, dialogue: MyDialogue, q: CallbackQuery| async move {
             dialogue.exit().await?;
-            let chat_id = q.message.as_ref().unwrap().chat().id;
+            let msg = q.message.as_ref().unwrap();
+            let chat_id = msg.chat().id;
+            let msg_id = msg.id();
+
             bot.answer_callback_query(q.id).await?;
-            bot.send_message(chat_id, "Возвращаюсь в меню.")
+            bot.edit_message_text(chat_id, msg_id,"Возвращаюсь в меню.")
                 .reply_markup(main_menu_buttons())
                 .await?;
 

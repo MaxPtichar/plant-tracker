@@ -1,8 +1,8 @@
 use sqlx::PgPool;
-use teloxide::prelude::*;
+use teloxide::{prelude::*, types::MessageGiveaway};
 
 use crate::{
-    bot::{HandlerResult, MeasurementDialogue, MyDialogue, keyboards::back_to_my_plants},
+    bot::{HandlerResult, MeasurementDialogue, MyDialogue, keyboards::{back_to_my_plants, back_to_or_menu}},
     db_operations,
     models::format_measurement_type,
 };
@@ -25,13 +25,18 @@ pub async fn receive_plant_for_record(
 
         bot.answer_callback_query(q.id).await?;
 
-        let chat_id = q.message.unwrap().chat().id;
+       
+        let msg = q.message.as_ref().unwrap(); 
+        let chat_id = msg.chat().id;
+        let msg_id = msg.id();
 
         let text = get_list_of_measurements_20(&pool, chat_id.0, plant_id).await?;
 
-        bot.send_message(chat_id, format!("☘️ {plant_name}\n\n{text}"))
-            .reply_markup(back_to_my_plants())
+        bot.edit_message_text(chat_id, msg_id, format!("☘️ {plant_name}\n\n{text}"))
+            .reply_markup(back_to_or_menu())
             .await?;
+
+        //сделать две кнпоки возврата + едит месса
 
         dialogue
             .update(MeasurementDialogue::WaitingForPlantRecord)

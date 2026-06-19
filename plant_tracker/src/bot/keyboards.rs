@@ -20,7 +20,7 @@ pub fn main_menu_buttons() -> InlineKeyboardMarkup {
     InlineKeyboardMarkup::new(vec![
         vec![
         InlineKeyboardButton::callback(
-            "🌿 Мои растения",
+            "🌿 Панель управления",
             "myplants",
         ),
         InlineKeyboardButton::callback(
@@ -30,11 +30,11 @@ pub fn main_menu_buttons() -> InlineKeyboardMarkup {
     ],
     
        vec![InlineKeyboardButton::callback(
-            "📖 Добавить показания",
+            "⚖️ Взвесить",
             "addmeasurement",
         ),
         InlineKeyboardButton::callback(
-            "🧪 Последняя прикормка",
+            "🧪 Когда кормили?",
             "lastfeed",
         ),
     ]])
@@ -45,13 +45,13 @@ pub fn my_plants_menu() -> InlineKeyboardMarkup {
     InlineKeyboardMarkup::new(vec![
     
         vec![
-            InlineKeyboardButton::callback("🌿 Мои растения", "plantlist"),
-            InlineKeyboardButton::callback("📖 Мои измерения", "mymeasurements"),
+            InlineKeyboardButton::callback("🌿 Список растений", "plantlist"),
+            InlineKeyboardButton::callback("📖 Журнал замеров", "mymeasurements"),
         ],
       
         vec![
             InlineKeyboardButton::callback("➕ Добавить растение", "createplant"),
-            InlineKeyboardButton::callback("⚙️ Настроить полив", "wateringconfig"),
+            InlineKeyboardButton::callback("⚙️ Настройка полива", "wateringconfig"),
         ],
      
         vec![
@@ -89,8 +89,6 @@ pub fn plant_keyboard(plants: &[Plant], back_to: &str) -> InlineKeyboardMarkup {
 
 
 
-             
-    ;
 
 
     row.push(vec![InlineKeyboardButton::callback("↩︎ Назад", back_to)]);
@@ -136,6 +134,17 @@ pub fn back_to_my_plants() -> InlineKeyboardMarkup {
         "↩︎  Назад",
         "myplants",
     )]])
+}
+
+
+pub fn back_to_or_menu() -> InlineKeyboardMarkup {
+    InlineKeyboardMarkup::new(vec![vec![InlineKeyboardButton::callback(
+        "↩︎  Назад",
+        "chooseplant",
+    ), 
+    InlineKeyboardButton::callback("🏠 В главное меню",
+     "cancel_action")
+    ]])
 }
 
 /// Returns a confirmation keyboard for plant deletion.
