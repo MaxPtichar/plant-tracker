@@ -18,18 +18,10 @@ use crate::prelude::*;
 pub enum Command {
     #[command(description = "Главное меню")]
     MainMenu,
-    #[command(description = "Добавить измерение")]
-    Addmeasurement,
-    #[command(description = "Когда поливать")]
-    Status,
-    #[command(description = "Последняя прикормка")]
-    LastFeed,
     #[command(description = "Помощь")]
     Help,
     #[command(description = "Старт")]
     Start,
-    #[command(description = "Отменить действие")]
-    Cancel,
 }
 
 /// Handles bot commands sent via `/command` syntax.
@@ -41,13 +33,7 @@ pub enum Command {
 /// - `/addmeasurement` — starts the measurement recording dialogue
 /// - `/lastfeed` — shows the last fertilizer application date per plant
 /// - `/cancel` — exits the current dialogue
-pub async fn handle_command(
-    bot: Bot,
-    msg: Message,
-    cmd: Command,
-    dialogue: MyDialogue,
-    pool: PgPool,
-) -> HandlerResult {
+pub async fn handle_command(bot: Bot, msg: Message, cmd: Command, pool: PgPool) -> HandlerResult {
     let username = msg.chat.username();
     let chat_id_i64 = msg.chat.id.0;
 
@@ -65,44 +51,11 @@ pub async fn handle_command(
                 .await?;
         }
 
-        Command::Status => {
-            let text = get_all_plants_status(&pool, msg.chat.id.0).await?;
-            bot.send_message(msg.chat.id, text).await?;
-        }
-
-        Command::Addmeasurement => {
-            let plants: Vec<crate::models::Plant> =
-                db_operations::get_user_plants(&pool, chat_id_i64).await?;
-            if plants.is_empty() {
-                bot.send_message(msg.chat.id, "Пока еще нет ни одного растения🌱".to_string())
-                    .await?;
-                dialogue.exit().await?;
-                return Ok(());
-            }
-            dialogue
-                .update(MeasurementDialogue::WaitingForPlant)
-                .await?;
-            bot.send_message(msg.chat.id, "Выбери растение: ")
-                .reply_markup(plant_keyboard(&plants, "Start"))
-                .await?;
-        }
-
-        Command::LastFeed => {
-            let plants = db_operations::recieve_plants_with_last_feed(&pool, msg.chat.id.0).await?;
-            bot.send_message(msg.chat.id, format_last_feed(&plants))
-                .await?;
-        }
-
         Command::Help => {
             let fmt = help_text();
 
             let chat_id = msg.chat.id;
             bot.send_message(chat_id, fmt).await?;
-        }
-
-        Command::Cancel => {
-            dialogue.exit().await?; // сбрасывает состояние диалога
-            bot.send_message(msg.chat.id, "Отменено").await?;
         }
     }
     Ok(())
