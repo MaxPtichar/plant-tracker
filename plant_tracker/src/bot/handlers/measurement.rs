@@ -5,6 +5,7 @@ use chrono::{DateTime, NaiveDate, TimeZone, Utc};
 use sqlx::PgPool;
 use teloxide::prelude::*;
 
+
 use crate::analytycs_v2::daily_water_loss;
 use crate::bot::dialogue::WateringConfigDialog;
 use crate::db_operations::{check_water_config, get_daily_loss, get_last_after_watering};
@@ -75,12 +76,12 @@ pub async fn receive_plant(
     )
 )
 .await?;
-            dialogue
-                .update(MeasurementDialogue::WateringConfig(
-                    WateringConfigDialog::WaitingWetWeight { plant_id },
-                ))
-                .await?;
-            return Ok(());
+            // dialogue
+            //     .update(MeasurementDialogue::WateringConfig(
+            //         WateringConfigDialog::WaitingWetWeight {prev_msg_id, plant_id,  },
+            //     ))
+            //     .await?;
+            // return Ok(());
         }
 
         bot.answer_callback_query(q.id).await?;
@@ -91,12 +92,12 @@ pub async fn receive_plant(
         )
         .await?;
 
-        dialogue
-            .update(MeasurementDialogue::WaitingForWeight {
-                plant_id,
-                plant_name,
-            })
-            .await?;
+        // dialogue
+        //     .update(MeasurementDialogue::WaitingForWeight {
+        //         plant_id,
+        //         plant_name,
+        //     })
+        //     .await?;
     }
     Ok(())
 }

@@ -1,3 +1,5 @@
+use teloxide::types::{Message, MessageId};
+
 use crate::models::MeasurementType;
 /// FSM state for the "record measurement" dialogue.
 ///
@@ -81,12 +83,18 @@ pub enum MeasurementDialogue {
 ///                 └─ (callback: custom) ──→ WaitingForCustomMoisture
 ///                             └─ (text: float 0.0–1.0) ──→ [create plant → exit]
 /// ```
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 #[allow(clippy::enum_variant_names)]
 pub enum PlantCreationDialogue {
     /// Entry point. Waiting for the plant's display name as a text message.
-    #[default]
-    WaitingForName,
+   
+    WaitingForName { prev_msg_id: MessageId },
+}
+impl Default for PlantCreationDialogue {
+    fn default() -> Self {
+        Self::WaitingForName { prev_msg_id: MessageId(0) }
+    }
+    
 }
 
 /// FSM state for the "configure pot" dialogue.
@@ -98,21 +106,30 @@ pub enum PlantCreationDialogue {
 ///             └─ (text: integer) ──────→ WaitingForDrySoilWeight
 ///                     └─ (text: integer) ──→ [save config → exit]
 /// ```
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub enum WateringConfigDialog {
     /// Entry point. Waiting for plant selection via inline keyboard.
-    #[default]
-    ChoosePlantName,
+   
+    ChoosePlantName { prev_msg_id: MessageId },
 
     /// Plant selected. Waiting for empty pot weight input (grams, integer).
-    WaitingWetWeight { plant_id: i64 },
+    WaitingWetWeight { prev_msg_id: MessageId, plant_id: i64 },
 
     /// Pot weight collected. Waiting for dry soil weight input (grams, integer).
-    WaitingForDrySoilWeight { plant_id: i64, wet_weight: i64 },
+    WaitingForDrySoilWeight {prev_msg_id: MessageId, plant_id: i64, wet_weight: i64,   },
 
     WaitingForThresholdPct {
+        prev_msg_id: MessageId,
         plant_id: i64,
         wet_weight: i64,
         dry_weight: i64,
+        
     },
+}
+
+impl Default for WateringConfigDialog {
+    fn default() -> Self {
+        Self::ChoosePlantName { prev_msg_id: MessageId(0) }
+    }
+    
 }

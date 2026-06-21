@@ -1,5 +1,6 @@
 pub use super::dialogue::{MeasurementDialogue, PlantCreationDialogue};
 
+
 use crate::bot::callbacks::cancel_callback;
 use crate::bot::commands::handle_menu_buttons;
 use crate::bot::dialogue::WateringConfigDialog;
@@ -12,7 +13,7 @@ use crate::bot::handlers::measurement::{receive_custom_date, receive_plant};
 use crate::bot::handlers::measurements_record::receive_plant_for_record;
 use crate::bot::handlers::plant_creation::get_plant_name;
 use crate::bot::handlers::water_config_creation::{
-    receive_dry_soil_weight, receive_plant_for_config, receive_threshold_pct, recieve_wet_weight,
+    receive_dry_soil_weight, receive_plant_for_config, receive_threshold_pct, receive_wet_weight,
 };
 use crate::bot::handlers::{receive_date, receive_type, receive_weight};
 
@@ -23,6 +24,7 @@ pub type HandlerResult = Result<(), Box<dyn std::error::Error + Send + Sync>>;
 pub fn message_branches()
 -> Handler<'static, HandlerResult, teloxide::dispatching::DpHandlerDescription> {
     Update::filter_message()
+    
         .branch(
             dptree::case![MeasurementDialogue::WaitingForWeight {
                 plant_id,
@@ -39,24 +41,32 @@ pub fn message_branches()
             .endpoint(receive_custom_date),
         )
         .branch(plant_creation_message_branches())
-        .branch(water_config_message_branches())
+         .branch(water_config_message_branches())
+       
 }
 
 fn plant_creation_message_branches()
 -> Handler<'static, HandlerResult, teloxide::dispatching::DpHandlerDescription> {
     dptree::case![MeasurementDialogue::CreatingPlant(inner_dialogue)]
-        .branch(dptree::case![PlantCreationDialogue::WaitingForName].endpoint(get_plant_name))
+        .branch(dptree::case![PlantCreationDialogue::WaitingForName { prev_msg_id }].endpoint(get_plant_name))
+        
 }
 
-fn water_config_message_branches()
--> Handler<'static, HandlerResult, teloxide::dispatching::DpHandlerDescription> {
-    dptree::case![MeasurementDialogue::WateringConfig(inner_dialogue)]
-        .branch(
-            dptree::case![WateringConfigDialog::WaitingWetWeight { plant_id }]
-                .endpoint(recieve_wet_weight),
+
+
+
+pub fn water_config_message_branches() ->  Handler<'static, HandlerResult, teloxide::dispatching::DpHandlerDescription> {
+   dptree::case![MeasurementDialogue::WateringConfig(inner_dialogue)]
+   .branch(
+            dptree::case![WateringConfigDialog::WaitingWetWeight {
+                prev_msg_id,
+                plant_id
+            }]
+            .endpoint(receive_wet_weight)
         )
         .branch(
             dptree::case![WateringConfigDialog::WaitingForDrySoilWeight {
+                prev_msg_id,
                 plant_id,
                 wet_weight
             }]
@@ -64,6 +74,7 @@ fn water_config_message_branches()
         )
         .branch(
             dptree::case![WateringConfigDialog::WaitingForThresholdPct {
+                prev_msg_id,
                 plant_id,
                 wet_weight,
                 dry_weight
@@ -72,6 +83,7 @@ fn water_config_message_branches()
         )
 }
 
+
 pub fn callback_branches()
 -> Handler<'static, HandlerResult, teloxide::dispatching::DpHandlerDescription> {
     Update::filter_callback_query()
@@ -79,14 +91,14 @@ pub fn callback_branches()
         .branch(dptree::filter(is_menu_callback).endpoint(handle_menu_buttons))
         .branch(delete_branches())
         .branch(measurement_branches())
-        .branch(pot_creation_callback_branches())
         .branch(delete_branches_measurement())
+        .branch(pot_creation_callback_branches())
 }
 
 fn pot_creation_callback_branches()
 -> Handler<'static, HandlerResult, teloxide::dispatching::DpHandlerDescription> {
     dptree::case![MeasurementDialogue::WateringConfig(inner_dialogue)].branch(
-        dptree::case![WateringConfigDialog::ChoosePlantName].endpoint(receive_plant_for_config),
+    dptree::case![WateringConfigDialog::ChoosePlantName {prev_msg_id}].endpoint(receive_plant_for_config),
     )
 }
 fn delete_branches() -> Handler<'static, HandlerResult, teloxide::dispatching::DpHandlerDescription>

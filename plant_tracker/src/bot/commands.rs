@@ -214,7 +214,7 @@ pub async fn handle_menu_buttons(
             }
             dialogue
                 .update(MeasurementDialogue::WateringConfig(
-                    WateringConfigDialog::ChoosePlantName,
+                    WateringConfigDialog::ChoosePlantName { prev_msg_id: msg_id },
                 ))
                 .await?;
             bot.edit_message_text(chat_id, msg_id, "Выберите растение: ")
@@ -225,7 +225,7 @@ pub async fn handle_menu_buttons(
         "createplant" => {
             dialogue
                 .update(MeasurementDialogue::CreatingPlant(
-                    super::PlantCreationDialogue::WaitingForName,
+                    super::PlantCreationDialogue::WaitingForName { prev_msg_id: msg_id },
                 ))
                 .await?;
              bot.edit_message_text(chat_id, msg_id,
