@@ -107,11 +107,11 @@ fn delete_branches() -> Handler<'static, HandlerResult, teloxide::dispatching::D
 {
     dptree::entry()
         .branch(
-            dptree::case![MeasurementDialogue::WaitingForPlantDelete]
+            dptree::case![MeasurementDialogue::WaitingForPlantDelete { prev_msg_id }]
                 .endpoint(receive_plant_for_delete),
         )
         .branch(
-            dptree::case![MeasurementDialogue::WaitingForConfirmDelete { plant_id }]
+            dptree::case![MeasurementDialogue::WaitingForConfirmDelete {prev_msg_id, plant_id }]
                 .endpoint(receive_answer),
         )
         .branch(
@@ -124,11 +124,11 @@ fn delete_branches_measurement()
 -> Handler<'static, HandlerResult, teloxide::dispatching::DpHandlerDescription> {
     dptree::entry()
         .branch(
-            dptree::case![MeasurementDialogue::WaitingForMeasurementDelete]
+            dptree::case![MeasurementDialogue::WaitingForMeasurementDelete { prev_msg_id }]
                 .endpoint(receive_plant_for_delete_measurement),
         )
         .branch(
-            dptree::case![MeasurementDialogue::WaitingForConfirmMeasurementDelete { plant_id }]
+            dptree::case![MeasurementDialogue::WaitingForConfirmMeasurementDelete {prev_msg_id, plant_id }]
                 .endpoint(receive_answer_measurement),
         )
         .branch(

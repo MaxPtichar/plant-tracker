@@ -197,7 +197,7 @@ pub async fn handle_menu_buttons(
                 return Ok(());
             }
             dialogue
-                .update(MeasurementDialogue::WaitingForPlantDelete)
+                .update(MeasurementDialogue::WaitingForPlantDelete { prev_msg_id: msg_id })
                 .await?;
             bot.edit_message_text(chat_id, msg_id, "\nВыберите растение, которое хотите удалить:\n")
                 .reply_markup(plant_keyboard(&plants, "myplants"))
@@ -281,7 +281,7 @@ pub async fn handle_menu_buttons(
                 return Ok(());
             }
             dialogue
-                .update(MeasurementDialogue::WaitingForMeasurementDelete)
+                .update(MeasurementDialogue::WaitingForMeasurementDelete { prev_msg_id: msg_id })
                 .await?;
             bot.edit_message_text(chat_id, msg_id,
                 "\nВыбери растение для того, чтобы удалить последнее измерение.",

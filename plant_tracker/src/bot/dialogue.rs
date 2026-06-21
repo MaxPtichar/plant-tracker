@@ -28,15 +28,17 @@ pub enum MeasurementDialogue {
     WaitingForPlantRecord,
 
     /// Waiting for the user to select a plant to delete.
-    WaitingForPlantDelete,
+    WaitingForPlantDelete { prev_msg_id: MessageId },
 
     /// Plant selected for deletion. Waiting for confirmation (`"ConfirmDelete"` or `"MyPlants"`).
     WaitingForConfirmDelete {
+        prev_msg_id: MessageId,
         plant_id: i64,
     },
 
-    WaitingForMeasurementDelete,
+    WaitingForMeasurementDelete { prev_msg_id: MessageId,},
     WaitingForConfirmMeasurementDelete {
+        prev_msg_id: MessageId,
         plant_id: i64,
     },
 
