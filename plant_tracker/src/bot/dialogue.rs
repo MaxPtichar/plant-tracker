@@ -49,24 +49,28 @@ pub enum MeasurementDialogue {
 
     /// Plant selected. Waiting for weight input (grams, float).
     WaitingForWeight {
+        prev_msg_id: MessageId,
         plant_id: i64,
-        plant_name: String,
+        
     },
 
     /// Weight collected. Waiting for measurement type selection
     /// via inline keyboard ([`MeasurementType`]).
     WaitingForType {
+        prev_msg_id: MessageId,
         plant_id: i64,
         weight: f32,
     },
 
     /// Type collected. Waiting for date selection via inline keyboard.
     WaitingForDate {
+        prev_msg_id: MessageId,
         plant_id: i64,
         weight: f32,
         type_: MeasurementType,
     },
     WaitingForCustomDate {
+        prev_msg_id: MessageId,
         plant_id: i64,
         weight: f32,
         type_: MeasurementType,

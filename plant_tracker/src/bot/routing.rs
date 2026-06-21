@@ -27,13 +27,15 @@ pub fn message_branches()
     
         .branch(
             dptree::case![MeasurementDialogue::WaitingForWeight {
+                prev_msg_id,
                 plant_id,
-                plant_name
+               
             }]
             .endpoint(receive_weight),
         )
         .branch(
             dptree::case![MeasurementDialogue::WaitingForCustomDate {
+                prev_msg_id,
                 plant_id,
                 weight,
                 type_
@@ -141,17 +143,18 @@ fn measurement_branches()
         .branch(dptree::case![MeasurementDialogue::WaitingForPlant].endpoint(receive_plant))
         .branch(
             dptree::case![MeasurementDialogue::WaitingForWeight {
+                prev_msg_id,
                 plant_id,
-                plant_name
             }]
             .endpoint(receive_plant),
         )
         .branch(
-            dptree::case![MeasurementDialogue::WaitingForType { plant_id, weight }]
+            dptree::case![MeasurementDialogue::WaitingForType { prev_msg_id, plant_id, weight }]
                 .endpoint(receive_type),
         )
         .branch(
             dptree::case![MeasurementDialogue::WaitingForDate {
+                prev_msg_id,
                 plant_id,
                 weight,
                 type_
