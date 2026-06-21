@@ -1,5 +1,4 @@
 use crate::models::{PlantMeasurementsHistory, PlantWithLastFeedWatering};
-use chrono::NaiveDate;
 
 /// Returns days elapsed since the last feed-watering measurement.
 ///
@@ -18,11 +17,6 @@ pub fn days_from_last_feed(last_feed: &PlantWithLastFeedWatering) -> Option<u32>
 pub fn watering_point(dry_weight: i64, wet_weight: i64, threshold_pct: f32) -> i64 {
     let capacity = (wet_weight - dry_weight) as f32;
     (dry_weight as f32 + capacity * (1.0 - threshold_pct)) as i64
-}
-
-/// Нужно ли поливать прямо сейчас
-pub fn needs_watering(current_weight: i64, watering_point: i64) -> bool {
-    current_weight <= watering_point
 }
 
 /// Дней до полива (None если нет данных по скорости убыли)

@@ -1,13 +1,4 @@
-use sqlx::PgPool;
-use teloxide::{dispatching::dialogue::GetChatId, prelude::*, types::MessageId};
-
-use crate::{
-    bot::{
-        HandlerResult, MeasurementDialogue, MyDialogue, PlantCreationDialogue,
-        dialogue::WateringConfigDialog, keyboards::back_to,
-    },
-    db_operations,
-};
+use crate::{bot::dialogue::WateringConfigDialog, db_operations, prelude::*};
 
 // ============================================================
 // Plant creation — multi-step dialogue
@@ -52,14 +43,17 @@ pub async fn get_plant_name(
 
     let chat_id = msg.chat.id;
 
-    // Сообщение пользователя больше не нужно — экран "одного сообщения".
     bot.delete_message(chat_id, msg.id).await.ok();
 
     let plants_name = match msg.text() {
         Some(name) => name.trim(),
         None => {
-            bot.edit_message_text(chat_id, prev_msg_id, "❌ Пожалуйста, отправьте текстовое название.")
-                .await?;
+            bot.edit_message_text(
+                chat_id,
+                prev_msg_id,
+                "❌ Пожалуйста, отправьте текстовое название.",
+            )
+            .await?;
             return Ok(());
         }
     };
@@ -107,7 +101,11 @@ pub async fn get_plant_name(
 
     let plant_id = db_operations::create_new_plant(&pool, chat_id.0, plants_name).await?;
 
-    tracing::info!("User {} created new plant with name {}", chat_id.0, plants_name);
+    tracing::info!(
+        "User {} created new plant with name {}",
+        chat_id.0,
+        plants_name
+    );
 
     bot.edit_message_text(
         chat_id,
@@ -122,7 +120,10 @@ pub async fn get_plant_name(
 
     dialogue
         .update(MeasurementDialogue::WateringConfig(
-            WateringConfigDialog::WaitingWetWeight { prev_msg_id, plant_id },
+            WateringConfigDialog::WaitingWetWeight {
+                prev_msg_id,
+                plant_id,
+            },
         ))
         .await?;
 

@@ -1,13 +1,6 @@
-use sqlx::PgPool;
-use teloxide::prelude::*;
-use teloxide::types::MessageId;
-
 use crate::bot::keyboards::{confrim_delete, my_plants_menu};
 
-use crate::{
-    bot::{HandlerResult, MeasurementDialogue, MyDialogue},
-    db_operations,
-};
+use crate::{db_operations, prelude::*};
 
 pub async fn receive_plant_for_delete(
     bot: Bot,
@@ -16,7 +9,9 @@ pub async fn receive_plant_for_delete(
     prev_msg_id: MessageId,
 ) -> HandlerResult {
     let Some(data) = q.data else { return Ok(()) };
-    let Some(message) = q.message.as_ref() else { return Ok(()) };
+    let Some(message) = q.message.as_ref() else {
+        return Ok(());
+    };
     let chat_id = message.chat().id;
 
     let Some((plant_id, plant_name)) = data
@@ -55,7 +50,9 @@ pub async fn receive_answer(
 ) -> HandlerResult {
     let Some(data) = q.data else { return Ok(()) };
     bot.answer_callback_query(q.id).await?;
-    let Some(message) = q.message.as_ref() else { return Ok(()) };
+    let Some(message) = q.message.as_ref() else {
+        return Ok(());
+    };
     let chat_id = message.chat().id;
 
     match data.as_str() {

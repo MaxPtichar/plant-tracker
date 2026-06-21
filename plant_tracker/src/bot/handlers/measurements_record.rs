@@ -1,10 +1,5 @@
-use sqlx::PgPool;
-use teloxide::{prelude::*, types::MessageGiveaway};
-
 use crate::{
-    bot::{HandlerResult, MeasurementDialogue, MyDialogue, keyboards::{back_to_my_plants, back_to_or_menu}},
-    db_operations,
-    models::format_measurement_type,
+    bot::keyboards::back_to_or_menu, db_operations, models::format_measurement_type, prelude::*,
 };
 
 /// Handles plant selection for viewing measurement history.
@@ -25,8 +20,7 @@ pub async fn receive_plant_for_record(
 
         bot.answer_callback_query(q.id).await?;
 
-       
-        let msg = q.message.as_ref().unwrap(); 
+        let msg = q.message.as_ref().unwrap();
         let chat_id = msg.chat().id;
         let msg_id = msg.id();
 

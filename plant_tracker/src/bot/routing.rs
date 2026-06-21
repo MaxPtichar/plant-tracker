@@ -1,35 +1,29 @@
 pub use super::dialogue::{MeasurementDialogue, PlantCreationDialogue};
 
-
 use crate::bot::callbacks::cancel_callback;
 use crate::bot::commands::handle_menu_buttons;
 use crate::bot::dialogue::WateringConfigDialog;
-use crate::bot::handlers::delete_last_measure::{
-    receive_answer_measurement, receive_plant_for_delete_measurement,
+use crate::bot::handlers::{
+    delete_last_measure::{receive_answer_measurement, receive_plant_for_delete_measurement},
+    delete_plants::{receive_answer, receive_plant_for_delete},
+    measurement::{receive_custom_date, receive_plant},
+    measurements_record::receive_plant_for_record,
+    plant_creation::get_plant_name,
+    receive_date, receive_type, receive_weight,
+    water_config_creation::{
+        receive_dry_soil_weight, receive_plant_for_config, receive_threshold_pct,
+        receive_wet_weight,
+    },
 };
-use crate::bot::handlers::delete_plants::{receive_answer, receive_plant_for_delete};
-
-use crate::bot::handlers::measurement::{receive_custom_date, receive_plant};
-use crate::bot::handlers::measurements_record::receive_plant_for_record;
-use crate::bot::handlers::plant_creation::get_plant_name;
-use crate::bot::handlers::water_config_creation::{
-    receive_dry_soil_weight, receive_plant_for_config, receive_threshold_pct, receive_wet_weight,
-};
-use crate::bot::handlers::{receive_date, receive_type, receive_weight};
-
-use teloxide::prelude::*;
-
-pub type HandlerResult = Result<(), Box<dyn std::error::Error + Send + Sync>>;
+use crate::prelude::*;
 
 pub fn message_branches()
 -> Handler<'static, HandlerResult, teloxide::dispatching::DpHandlerDescription> {
     Update::filter_message()
-    
         .branch(
             dptree::case![MeasurementDialogue::WaitingForWeight {
                 prev_msg_id,
                 plant_id,
-               
             }]
             .endpoint(receive_weight),
         )
@@ -43,28 +37,26 @@ pub fn message_branches()
             .endpoint(receive_custom_date),
         )
         .branch(plant_creation_message_branches())
-         .branch(water_config_message_branches())
-       
+        .branch(water_config_message_branches())
 }
 
 fn plant_creation_message_branches()
 -> Handler<'static, HandlerResult, teloxide::dispatching::DpHandlerDescription> {
-    dptree::case![MeasurementDialogue::CreatingPlant(inner_dialogue)]
-        .branch(dptree::case![PlantCreationDialogue::WaitingForName { prev_msg_id }].endpoint(get_plant_name))
-        
+    dptree::case![MeasurementDialogue::CreatingPlant(inner_dialogue)].branch(
+        dptree::case![PlantCreationDialogue::WaitingForName { prev_msg_id }]
+            .endpoint(get_plant_name),
+    )
 }
 
-
-
-
-pub fn water_config_message_branches() ->  Handler<'static, HandlerResult, teloxide::dispatching::DpHandlerDescription> {
-   dptree::case![MeasurementDialogue::WateringConfig(inner_dialogue)]
-   .branch(
+pub fn water_config_message_branches()
+-> Handler<'static, HandlerResult, teloxide::dispatching::DpHandlerDescription> {
+    dptree::case![MeasurementDialogue::WateringConfig(inner_dialogue)]
+        .branch(
             dptree::case![WateringConfigDialog::WaitingWetWeight {
                 prev_msg_id,
                 plant_id
             }]
-            .endpoint(receive_wet_weight)
+            .endpoint(receive_wet_weight),
         )
         .branch(
             dptree::case![WateringConfigDialog::WaitingForDrySoilWeight {
@@ -85,7 +77,6 @@ pub fn water_config_message_branches() ->  Handler<'static, HandlerResult, telox
         )
 }
 
-
 pub fn callback_branches()
 -> Handler<'static, HandlerResult, teloxide::dispatching::DpHandlerDescription> {
     Update::filter_callback_query()
@@ -100,7 +91,8 @@ pub fn callback_branches()
 fn pot_creation_callback_branches()
 -> Handler<'static, HandlerResult, teloxide::dispatching::DpHandlerDescription> {
     dptree::case![MeasurementDialogue::WateringConfig(inner_dialogue)].branch(
-    dptree::case![WateringConfigDialog::ChoosePlantName {prev_msg_id}].endpoint(receive_plant_for_config),
+        dptree::case![WateringConfigDialog::ChoosePlantName { prev_msg_id }]
+            .endpoint(receive_plant_for_config),
     )
 }
 fn delete_branches() -> Handler<'static, HandlerResult, teloxide::dispatching::DpHandlerDescription>
@@ -111,8 +103,11 @@ fn delete_branches() -> Handler<'static, HandlerResult, teloxide::dispatching::D
                 .endpoint(receive_plant_for_delete),
         )
         .branch(
-            dptree::case![MeasurementDialogue::WaitingForConfirmDelete {prev_msg_id, plant_id }]
-                .endpoint(receive_answer),
+            dptree::case![MeasurementDialogue::WaitingForConfirmDelete {
+                prev_msg_id,
+                plant_id
+            }]
+            .endpoint(receive_answer),
         )
         .branch(
             dptree::case![MeasurementDialogue::WaitingForPlantRecord]
@@ -128,8 +123,11 @@ fn delete_branches_measurement()
                 .endpoint(receive_plant_for_delete_measurement),
         )
         .branch(
-            dptree::case![MeasurementDialogue::WaitingForConfirmMeasurementDelete {prev_msg_id, plant_id }]
-                .endpoint(receive_answer_measurement),
+            dptree::case![MeasurementDialogue::WaitingForConfirmMeasurementDelete {
+                prev_msg_id,
+                plant_id
+            }]
+            .endpoint(receive_answer_measurement),
         )
         .branch(
             dptree::case![MeasurementDialogue::WaitingForPlantRecord]
@@ -149,8 +147,12 @@ fn measurement_branches()
             .endpoint(receive_plant),
         )
         .branch(
-            dptree::case![MeasurementDialogue::WaitingForType { prev_msg_id, plant_id, weight }]
-                .endpoint(receive_type),
+            dptree::case![MeasurementDialogue::WaitingForType {
+                prev_msg_id,
+                plant_id,
+                weight
+            }]
+            .endpoint(receive_type),
         )
         .branch(
             dptree::case![MeasurementDialogue::WaitingForDate {

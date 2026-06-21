@@ -1,13 +1,12 @@
 use std::ops::Mul;
 
-use anyhow::Context;
 use chrono::{DateTime, Utc};
-use sqlx::PgPool;
 
 use crate::{
     analytycs_v2::{daily_water_loss, days_until_watering, watering_point},
     db_operations::{self, get_last_measurement},
-    models::{PlantMeasurementsHistory, watering_status},
+    models::watering_status,
+    prelude::*,
 };
 
 /// Returns a formatted watering status string for all user's plants.
@@ -32,25 +31,21 @@ pub async fn get_all_plants_status(pool: &PgPool, chat_id: i64) -> sqlx::Result<
     let mut show_calibration_hint = false;
 
     for plant in plants {
-
-        
-
-        
-        
-        let (dry_weight, wet_weight, threshold_pct) = match (plant.dry_weight, plant.wet_weight, plant.threshold_pct) {
-            (Some(dw), Some(ww), Some(tp)) => (dw, ww, tp), 
-            _ => {
-                let fm = format!(
-                    "⚙️ Конфигурация полива для **{}** отсутствует\n\n\
+        let (dry_weight, wet_weight, threshold_pct) =
+            match (plant.dry_weight, plant.wet_weight, plant.threshold_pct) {
+                (Some(dw), Some(ww), Some(tp)) => (dw, ww, tp),
+                _ => {
+                    let fm = format!(
+                        "⚙️ Конфигурация полива для **{}** отсутствует\n\n\
      Создайте её, чтобы получать уведомления:\n\
      /start → Мои растения → Настроить полив",
-                    plant.plants_name
-                );
-                result.push(fm);
+                        plant.plants_name
+                    );
+                    result.push(fm);
 
-                continue;
-            }
-        };
+                    continue;
+                }
+            };
 
         let learned_daily_loss = plant.learned_daily_loss;
 

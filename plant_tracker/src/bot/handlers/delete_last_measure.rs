@@ -1,8 +1,8 @@
 use teloxide::types::MessageId;
 
 use crate::bot::keyboards::{confrim_delete, my_plants_menu};
-use crate::{bot::MeasurementDialogue, db_operations::get_last_measurement};
-use crate::{db_operations, prelude::*};
+use crate::db_operations;
+use crate::prelude::*;
 
 pub async fn receive_plant_for_delete_measurement(
     bot: Bot,
@@ -12,7 +12,9 @@ pub async fn receive_plant_for_delete_measurement(
     pool: PgPool,
 ) -> HandlerResult {
     let Some(data) = q.data else { return Ok(()) };
-    let Some(message) = q.message.as_ref() else { return Ok(()) };
+    let Some(message) = q.message.as_ref() else {
+        return Ok(());
+    };
     let chat_id = message.chat().id;
 
     let Some((plant_id, plant_name)) = data
@@ -31,7 +33,7 @@ pub async fn receive_plant_for_delete_measurement(
         })
         .await?;
 
-    if let Some(last_measure) = get_last_measurement(&pool, plant_id).await? {
+    if let Some(last_measure) = db_operations::get_last_measurement(&pool, plant_id).await? {
         let mf = format!(
             "📊 {} г {}",
             last_measure.0,
@@ -67,7 +69,9 @@ pub async fn receive_answer_measurement(
 ) -> HandlerResult {
     let Some(data) = q.data else { return Ok(()) };
     bot.answer_callback_query(q.id).await?;
-    let Some(message) = q.message.as_ref() else { return Ok(()) };
+    let Some(message) = q.message.as_ref() else {
+        return Ok(());
+    };
     let chat_id = message.chat().id;
 
     match data.as_str() {

@@ -316,8 +316,8 @@ pub async fn get_last_measurement(
     .await?;
 
     if let Some(data) = res {
-        return Ok(Some((data.weight, data.date)));
+        Ok(Some((data.weight, data.date)))
     } else {
-        return Ok(None);
+        Ok(None)
     }
 }

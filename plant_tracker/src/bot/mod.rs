@@ -21,7 +21,6 @@ use crate::bot::notification::chat_notification;
 use crate::bot::routing::{callback_branches, message_branches};
 
 use chrono::{Local, Timelike};
-use teloxide::prelude::*;
 
 use crate::prelude::*;
 /// Entry point of the bot. Initialises the database pool, starts the

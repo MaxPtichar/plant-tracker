@@ -1,10 +1,6 @@
-use std::vec;
-
 use crate::models::Plant;
 
-use teloxide::types::{
-    ButtonRequest, InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, KeyboardMarkup,
-};
+use teloxide::types::{InlineKeyboardButton, InlineKeyboardMarkup};
 
 /// Returns a keyboard with a single "Back to main menu" button.
 /// Used as a fallback navigation in most dialogues.
@@ -19,49 +15,35 @@ pub fn back_to() -> InlineKeyboardMarkup {
 pub fn main_menu_buttons() -> InlineKeyboardMarkup {
     InlineKeyboardMarkup::new(vec![
         vec![
-        InlineKeyboardButton::callback(
-            "🌿 Панель управления",
-            "myplants",
-        ),
-        InlineKeyboardButton::callback(
-            "💧 Когда поливать?",
-            "status",
-        ),
-    ],
-    
-       vec![InlineKeyboardButton::callback(
-            "⚖️ Взвесить",
-            "addmeasurement",
-        ),
-        InlineKeyboardButton::callback(
-            "🧪 Когда кормили?",
-            "lastfeed",
-        ),
-    ]])
+            InlineKeyboardButton::callback("🌿 Панель управления", "myplants"),
+            InlineKeyboardButton::callback("💧 Когда поливать?", "status"),
+        ],
+        vec![
+            InlineKeyboardButton::callback("⚖️ Взвесить", "addmeasurement"),
+            InlineKeyboardButton::callback("🧪 Когда кормили?", "lastfeed"),
+        ],
+    ])
 }
 
 /// Returns the "My Plants" submenu inline keyboard.
 pub fn my_plants_menu() -> InlineKeyboardMarkup {
     InlineKeyboardMarkup::new(vec![
-    
         vec![
             InlineKeyboardButton::callback("🌿 Список растений", "plantlist"),
             InlineKeyboardButton::callback("📖 Журнал замеров", "mymeasurements"),
         ],
-      
         vec![
             InlineKeyboardButton::callback("➕ Добавить растение", "createplant"),
             InlineKeyboardButton::callback("⚙️ Настройка полива", "wateringconfig"),
         ],
-     
         vec![
             InlineKeyboardButton::callback("🪏 Удалить растение", "deleteplant"),
             InlineKeyboardButton::callback("🗑 Удалить замер", "deletelastmeasurement"),
         ],
-    
-        vec![
-            InlineKeyboardButton::callback("↩︎ Назад в главное меню", "mainmenu")
-        ],
+        vec![InlineKeyboardButton::callback(
+            "↩︎ Назад в главное меню",
+            "mainmenu",
+        )],
     ])
 }
 
@@ -70,26 +52,18 @@ pub fn my_plants_menu() -> InlineKeyboardMarkup {
 /// Each button's callback data is `"plant_id:plant_name"`.
 /// A "Back" button is appended at the bottom with the given `back_to` callback.
 pub fn plant_keyboard(plants: &[Plant], back_to: &str) -> InlineKeyboardMarkup {
-    let mut row:Vec<Vec<InlineKeyboardButton>> =
-        plants
-            .iter()
-            .map(|x| {
-                InlineKeyboardButton::callback(
-                    x.plants_name.clone(),
-                    format!("{}:{}", x.id, x.plants_name),
-                )
-            })
-
-
-          
-            .collect::<Vec<_>>()
-            .chunks(2)
-            .map(|chunk| chunk.to_vec())
-            .collect();
-
-
-
-
+    let mut row: Vec<Vec<InlineKeyboardButton>> = plants
+        .iter()
+        .map(|x| {
+            InlineKeyboardButton::callback(
+                x.plants_name.clone(),
+                format!("{}:{}", x.id, x.plants_name),
+            )
+        })
+        .collect::<Vec<_>>()
+        .chunks(2)
+        .map(|chunk| chunk.to_vec())
+        .collect();
 
     row.push(vec![InlineKeyboardButton::callback("↩︎ Назад", back_to)]);
 
@@ -136,14 +110,10 @@ pub fn back_to_my_plants() -> InlineKeyboardMarkup {
     )]])
 }
 
-
 pub fn back_to_or_menu() -> InlineKeyboardMarkup {
-    InlineKeyboardMarkup::new(vec![vec![InlineKeyboardButton::callback(
-        "↩︎  Назад",
-        "chooseplant",
-    ), 
-    InlineKeyboardButton::callback("🏠 В главное меню",
-     "cancel_action")
+    InlineKeyboardMarkup::new(vec![vec![
+        InlineKeyboardButton::callback("↩︎  Назад", "chooseplant"),
+        InlineKeyboardButton::callback("🏠 В главное меню", "cancel_action"),
     ]])
 }
 
@@ -157,24 +127,22 @@ pub fn confrim_delete() -> InlineKeyboardMarkup {
     ]])
 }
 
-
 pub fn first_page() -> InlineKeyboardMarkup {
-    InlineKeyboardMarkup::new(vec![
-        vec![
+    InlineKeyboardMarkup::new(vec![vec![
         InlineKeyboardButton::callback("📖 Как это работает?", "help"),
-        InlineKeyboardButton::callback("🪴 Добавить растение", "createplant"),]
-    ])
+        InlineKeyboardButton::callback("🪴 Добавить растение", "createplant"),
+    ]])
 }
 
-
-
-
 pub fn plant_or_menu() -> InlineKeyboardMarkup {
-    InlineKeyboardMarkup::new(vec![vec![InlineKeyboardButton::callback(
-        "🌿 Другое растение",
-        "chooseplant",
-    )], 
-    vec![InlineKeyboardButton::callback("🏠 В главное меню",
-     "cancel_action")
-    ]])
+    InlineKeyboardMarkup::new(vec![
+        vec![InlineKeyboardButton::callback(
+            "🌿 Другое растение",
+            "chooseplant",
+        )],
+        vec![InlineKeyboardButton::callback(
+            "🏠 В главное меню",
+            "cancel_action",
+        )],
+    ])
 }

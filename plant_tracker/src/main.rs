@@ -1,12 +1,8 @@
-// mod analytics;
-mod bot;
-
-mod db_operations;
+mod analytycs_v2;
+pub mod bot;
+pub mod db_operations;
 mod models;
 mod prelude;
-
-// mod analytics_new;
-mod analytycs_v2;
 
 use axum::{Router, routing::get};
 #[tokio::main]
@@ -18,8 +14,8 @@ async fn main() {
     // tracing::info!("Bot has started...");
     // bot::plant_bot().await;
 
-     tokio::spawn(async {
-         tracing::info!("Bot has started...");
+    tokio::spawn(async {
+        tracing::info!("Bot has started...");
         bot::plant_bot().await;
     });
 

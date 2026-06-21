@@ -1,10 +1,8 @@
-use chrono::{DateTime, Days, Local, NaiveDate, Utc};
-
-use teloxide::prelude::*;
+use chrono::{DateTime, Days, Utc};
 
 use crate::bot::keyboards::main_menu_buttons;
-use crate::bot::{HandlerResult, MyDialogue};
 use crate::models::MeasurementType;
+use crate::prelude::*;
 
 /// Parses a date string from callback data into [`NaiveDate`].
 ///
@@ -58,7 +56,7 @@ pub fn cancel_callback()
             let msg_id = msg.id();
 
             bot.answer_callback_query(q.id).await?;
-            bot.edit_message_text(chat_id, msg_id,"Возвращаюсь в меню.")
+            bot.edit_message_text(chat_id, msg_id, "Возвращаюсь в меню.")
                 .reply_markup(main_menu_buttons())
                 .await?;
 

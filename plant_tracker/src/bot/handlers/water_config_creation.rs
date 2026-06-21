@@ -1,16 +1,12 @@
 use std::ops::Div;
 
-use anyhow::Context;
-use sqlx::PgPool;
-use teloxide::{dispatching::dialogue::GetChatId, prelude::*, sugar::bot::BotMessagesExt, types::MessageId};
-
 use crate::{
     bot::{
-        HandlerResult, MeasurementDialogue, MyDialogue,
         dialogue::WateringConfigDialog,
-        keyboards::{back_to, back_to_my_plants, main_menu_buttons},
+        keyboards::{back_to, back_to_my_plants},
     },
     db_operations,
+    prelude::*,
 };
 
 /// Handles plant selection for pot configuration.
@@ -24,8 +20,6 @@ pub async fn receive_plant_for_config(
     let chat_id = message.chat().id;
     let msg_id = message.id();
 
-
-
     let Some(data) = q.data else {
         return Ok(());
     };
@@ -36,8 +30,6 @@ pub async fn receive_plant_for_config(
         .unwrap();
 
     bot.answer_callback_query(q.id).await?;
-
-    
 
     bot.edit_message_text(
         chat_id,
@@ -55,7 +47,10 @@ pub async fn receive_plant_for_config(
 
     dialogue
         .update(MeasurementDialogue::WateringConfig(
-            WateringConfigDialog::WaitingWetWeight { prev_msg_id: msg_id, plant_id },
+            WateringConfigDialog::WaitingWetWeight {
+                prev_msg_id: msg_id,
+                plant_id,
+            },
         ))
         .await?;
 
@@ -67,7 +62,7 @@ pub async fn receive_wet_weight(
     bot: Bot,
     msg: Message,
     dialogue: MyDialogue,
-     (prev_msg_id, plant_id): (MessageId, i64),
+    (prev_msg_id, plant_id): (MessageId, i64),
 ) -> HandlerResult {
     const MAX_WEIGHT: i64 = 50_000;
     let chat_id = msg.chat.id;
@@ -119,8 +114,12 @@ pub async fn receive_wet_weight(
         },
 
         None => {
-            bot.edit_message_text(chat_id, prev_msg_id, "Отправьте вес растения числом в граммах:")
-                .await?;
+            bot.edit_message_text(
+                chat_id,
+                prev_msg_id,
+                "Отправьте вес растения числом в граммах:",
+            )
+            .await?;
         }
     };
 
@@ -132,8 +131,7 @@ pub async fn receive_dry_soil_weight(
     bot: Bot,
     dialogue: MyDialogue,
     msg: Message,
-    ( prev_msg_id, plant_id, wet_weight,): (MessageId, i64, i64, )
-   
+    (prev_msg_id, plant_id, wet_weight): (MessageId, i64, i64),
 ) -> HandlerResult {
     let chat_id = msg.chat.id;
     let msg_id = msg.id;
@@ -189,8 +187,12 @@ pub async fn receive_dry_soil_weight(
         },
 
         None => {
-            bot.edit_message_text(chat_id, prev_msg_id, "⚠️ Пожалуйста, введите вес в граммах: ")
-                .await?;
+            bot.edit_message_text(
+                chat_id,
+                prev_msg_id,
+                "⚠️ Пожалуйста, введите вес в граммах: ",
+            )
+            .await?;
         }
     }
 
@@ -203,7 +205,7 @@ pub async fn receive_threshold_pct(
     dialogue: MyDialogue,
     msg: Message,
     pool: PgPool,
-    ( prev_msg_id, plant_id, wet_weight,  dry_weight, ): (MessageId, i64, i64, i64, )
+    (prev_msg_id, plant_id, wet_weight, dry_weight): (MessageId, i64, i64, i64),
 ) -> HandlerResult {
     let chat_id = msg.chat.id;
     let msg_id = msg.id;
@@ -303,7 +305,10 @@ pub async fn ensure_water_config(
 
         dialogue
             .update(MeasurementDialogue::WateringConfig(
-                WateringConfigDialog::WaitingWetWeight { prev_msg_id, plant_id },
+                WateringConfigDialog::WaitingWetWeight {
+                    prev_msg_id,
+                    plant_id,
+                },
             ))
             .await
             .context("Не удалось обновить стейт диалога на WaitingWetWeight")?;

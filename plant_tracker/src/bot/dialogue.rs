@@ -1,6 +1,4 @@
-use teloxide::types::{Message, MessageId};
-
-use crate::models::MeasurementType;
+use crate::{models::MeasurementType, prelude::*};
 /// FSM state for the "record measurement" dialogue.
 ///
 /// Transitions:
@@ -28,7 +26,9 @@ pub enum MeasurementDialogue {
     WaitingForPlantRecord,
 
     /// Waiting for the user to select a plant to delete.
-    WaitingForPlantDelete { prev_msg_id: MessageId },
+    WaitingForPlantDelete {
+        prev_msg_id: MessageId,
+    },
 
     /// Plant selected for deletion. Waiting for confirmation (`"ConfirmDelete"` or `"MyPlants"`).
     WaitingForConfirmDelete {
@@ -36,7 +36,9 @@ pub enum MeasurementDialogue {
         plant_id: i64,
     },
 
-    WaitingForMeasurementDelete { prev_msg_id: MessageId,},
+    WaitingForMeasurementDelete {
+        prev_msg_id: MessageId,
+    },
     WaitingForConfirmMeasurementDelete {
         prev_msg_id: MessageId,
         plant_id: i64,
@@ -53,7 +55,6 @@ pub enum MeasurementDialogue {
     WaitingForWeight {
         prev_msg_id: MessageId,
         plant_id: i64,
-        
     },
 
     /// Weight collected. Waiting for measurement type selection
@@ -93,14 +94,14 @@ pub enum MeasurementDialogue {
 #[allow(clippy::enum_variant_names)]
 pub enum PlantCreationDialogue {
     /// Entry point. Waiting for the plant's display name as a text message.
-   
     WaitingForName { prev_msg_id: MessageId },
 }
 impl Default for PlantCreationDialogue {
     fn default() -> Self {
-        Self::WaitingForName { prev_msg_id: MessageId(0) }
+        Self::WaitingForName {
+            prev_msg_id: MessageId(0),
+        }
     }
-    
 }
 
 /// FSM state for the "configure pot" dialogue.
@@ -115,27 +116,33 @@ impl Default for PlantCreationDialogue {
 #[derive(Debug, Clone)]
 pub enum WateringConfigDialog {
     /// Entry point. Waiting for plant selection via inline keyboard.
-   
     ChoosePlantName { prev_msg_id: MessageId },
 
     /// Plant selected. Waiting for empty pot weight input (grams, integer).
-    WaitingWetWeight { prev_msg_id: MessageId, plant_id: i64 },
+    WaitingWetWeight {
+        prev_msg_id: MessageId,
+        plant_id: i64,
+    },
 
     /// Pot weight collected. Waiting for dry soil weight input (grams, integer).
-    WaitingForDrySoilWeight {prev_msg_id: MessageId, plant_id: i64, wet_weight: i64,   },
+    WaitingForDrySoilWeight {
+        prev_msg_id: MessageId,
+        plant_id: i64,
+        wet_weight: i64,
+    },
 
     WaitingForThresholdPct {
         prev_msg_id: MessageId,
         plant_id: i64,
         wet_weight: i64,
         dry_weight: i64,
-        
     },
 }
 
 impl Default for WateringConfigDialog {
     fn default() -> Self {
-        Self::ChoosePlantName { prev_msg_id: MessageId(0) }
+        Self::ChoosePlantName {
+            prev_msg_id: MessageId(0),
+        }
     }
-    
 }

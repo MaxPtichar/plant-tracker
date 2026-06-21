@@ -1,7 +1,6 @@
 use core::fmt;
 
 use chrono::{DateTime, Utc};
-use serde::Deserialize;
 use sqlx::FromRow;
 /// Measurement type stored in the `measurements` table.
 ///
@@ -193,15 +192,6 @@ pub struct PlantDetails {
 #[derive(Debug, FromRow)]
 pub struct PlantMeasurementsHistory {
     /// Measured weight of the pot in grams.
-    pub weight: f32,
-    pub date: DateTime<Utc>,
-    /// String representation of [`MeasurementType`].
-    pub measuring_type: String,
-}
-
-#[derive(Debug, FromRow)]
-pub struct PlantsMeasurement30 {
-    pub id: i64,
     pub weight: f32,
     pub date: DateTime<Utc>,
     /// String representation of [`MeasurementType`].
