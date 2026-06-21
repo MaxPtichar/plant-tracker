@@ -169,3 +169,12 @@ pub fn first_page() -> InlineKeyboardMarkup {
 
 
 
+pub fn plant_or_menu() -> InlineKeyboardMarkup {
+    InlineKeyboardMarkup::new(vec![vec![InlineKeyboardButton::callback(
+        "🌿 Другое растение",
+        "chooseplant",
+    )], 
+    vec![InlineKeyboardButton::callback("🏠 В главное меню",
+     "cancel_action")
+    ]])
+}

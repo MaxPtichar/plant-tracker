@@ -5,6 +5,7 @@ use teloxide::types::MessageId;
 
 use crate::analytycs_v2::daily_water_loss;
 use crate::bot::dialogue::WateringConfigDialog;
+use crate::bot::keyboards::plant_or_menu;
 use crate::db_operations::{check_water_config, get_daily_loss, get_last_after_watering};
 use crate::models::{MeasurementType, PlantMeasurementsHistory};
 use crate::{
@@ -242,8 +243,8 @@ pub async fn finalize_measurement(
     let plants: Vec<crate::models::Plant> =
         db_operations::get_user_plants(&pool, chat_id.0).await?;
 
-    bot.edit_message_text(chat_id, prev_msg_id, format!("{result_text}\n\nВыбери растение: "))
-        .reply_markup(plant_keyboard(&plants, "start"))
+    bot.edit_message_text(chat_id, prev_msg_id, format!("{result_text}\n\n"))
+        .reply_markup(plant_or_menu())
         .await?;
 
     Ok(())
