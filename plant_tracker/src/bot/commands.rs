@@ -12,7 +12,6 @@ use crate::bot::keyboards::{main_menu_buttons, plant_keyboard};
 use crate::db_operations;
 use crate::prelude::*;
 
-
 /// Bot commands available via `/` in Telegram.
 ///
 /// Callback-only actions (`CreatePot`, `CreatePlant`, etc.) are handled
@@ -96,8 +95,6 @@ pub async fn handle_menu_buttons(
     let message = q.message.as_ref().unwrap();
     let msg_id = message.id();
     let plants = db_operations::get_user_plants(&pool, chat_id_i64).await?;
-
-    
 
     dbg!(&data.as_str());
 
@@ -286,63 +283,36 @@ pub async fn handle_menu_buttons(
                 .await?;
         }
 
-         action_call if action_call.starts_with("call:") => {
-
-
+        action_call if action_call.starts_with("call:") => {
             let clear_call = action_call.trim_start_matches("call:");
 
             let (command, date) = clear_call.split_once(":").unwrap();
 
-            let parse_date =  NaiveDate::parse_from_str(date,"%d.%m.%Y")?;
+            let parse_date = NaiveDate::parse_from_str(date, "%d.%m.%Y")?;
 
             match command {
-
                 "navmonth" => {
-
-
                     bot.edit_message_text(chat_id, msg_id, "Выберите месяц")
-                .reply_markup(month_grid(&parse_date))
-                .await?;
-
-
+                        .reply_markup(month_grid(&parse_date))
+                        .await?;
                 }
 
-                "navyear" => { 
+                "navyear" => {
                     bot.edit_message_text(chat_id, msg_id, "Выберите год")
-                .reply_markup(year_grid(&parse_date))
-                .await?;
-
+                        .reply_markup(year_grid(&parse_date))
+                        .await?;
                 }
 
-    
+                "calendar" => {
+                    bot.edit_message_text(chat_id, msg_id, "Календарь")
+                        .reply_markup(build_calendar(parse_date))
+                        .await?;
+                }
 
-                "calendar" => { 
-            
-           
-
-
-            bot.edit_message_text(chat_id, msg_id, "Календарь")
-                .reply_markup(build_calendar(parse_date))
-                .await?;
+                _ => unreachable!(),
+            }
         }
 
-
-                
-
-                _ => unreachable!()
-                
-            }
-
-            
-         }  
-
-            
-        
-
-
-
-
-        
         _ => {}
     }
 

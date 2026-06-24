@@ -2,7 +2,6 @@ use chrono::{Datelike, Days, Months, NaiveDate};
 
 use teloxide::types::{InlineKeyboardButton, InlineKeyboardMarkup};
 
-
 const IGNORE: &str = "ignore";
 
 pub fn build_calendar(start_date: NaiveDate) -> InlineKeyboardMarkup {
@@ -45,13 +44,10 @@ fn calendar_grid(dates: &[NaiveDate]) -> [Option<NaiveDate>; 42] {
 }
 
 pub fn year_grid(date: &NaiveDate) -> InlineKeyboardMarkup {
-
     let current_year = date.year();
 
     let start_date = current_year - 4;
     let end_date = current_year + 4;
-
-   
 
     let prev_years = current_year - 9;
     let next_years: i32 = current_year + 9;
@@ -63,78 +59,57 @@ pub fn year_grid(date: &NaiveDate) -> InlineKeyboardMarkup {
         InlineKeyboardButton::callback(">>", format!("call:navyear:01.01.{}", next_years)),
     ];
 
-
-
     let year_butt = (start_date..=end_date)
-    .into_iter()
-    .map(|year| InlineKeyboardButton::callback(year.to_string(), format!("call:navmonth:01.01.{year}", )))
-    .collect::<Vec<InlineKeyboardButton>>()
-    .chunks(3)
-    .map(|chunk| chunk.to_vec())
-    .collect::<Vec<Vec<InlineKeyboardButton>>>();
+        .into_iter()
+        .map(|year| {
+            InlineKeyboardButton::callback(year.to_string(), format!("call:navmonth:01.01.{year}",))
+        })
+        .collect::<Vec<InlineKeyboardButton>>()
+        .chunks(3)
+        .map(|chunk| chunk.to_vec())
+        .collect::<Vec<Vec<InlineKeyboardButton>>>();
 
     grid.extend(year_butt);
     grid.push(switcher);
 
-
     InlineKeyboardMarkup::new(grid)
 }
 
-
 pub fn month_grid(date: &NaiveDate) -> InlineKeyboardMarkup {
-    
     let year = date.year();
 
-     let month_names = [
-        "Янв",
-        "Фев",
-        "Март",
-        "Апр",
-        "Май",
-        "Июнь",
-        "Июль",
-        "Авг",
-        "Сент",
-        "Окт",
-        "Нояб",
-        "Дек",
+    let month_names = [
+        "Янв", "Фев", "Март", "Апр", "Май", "Июнь", "Июль", "Авг", "Сент", "Окт", "Нояб", "Дек",
     ];
 
-
     let month_button = month_names
-    .iter()
-    .enumerate()
-    .map(|(i,m)| InlineKeyboardButton::callback(m.to_string(), format!(
-        "call:calendar:01.{}.{}", i + 1, year
-    )))
-    .collect::<Vec<InlineKeyboardButton>>()
-    .chunks(3)
-    .map(|chunk| chunk.to_vec())
-    .collect::<Vec<Vec<InlineKeyboardButton>>>();
-
-   
-
+        .iter()
+        .enumerate()
+        .map(|(i, m)| {
+            InlineKeyboardButton::callback(
+                m.to_string(),
+                format!("call:calendar:01.{}.{}", i + 1, year),
+            )
+        })
+        .collect::<Vec<InlineKeyboardButton>>()
+        .chunks(3)
+        .map(|chunk| chunk.to_vec())
+        .collect::<Vec<Vec<InlineKeyboardButton>>>();
 
     InlineKeyboardMarkup::new(month_button)
-
-
-
-
-
 }
-
 
 pub fn calendar_button(dates: Vec<NaiveDate>) -> InlineKeyboardMarkup {
     let start_date = dates.first().unwrap();
 
     let grid = calendar_grid(&dates);
 
-    let  year_button = year_button(start_date);
+    let year_button = year_button(start_date);
 
     let prev_next_month = prev_next_month(start_date);
 
     let mut calendar: Vec<Vec<InlineKeyboardButton>> = Vec::new();
-    
+
     calendar.push(year_button);
     calendar.push(prev_next_month);
 
@@ -184,23 +159,26 @@ pub fn prev_next_month(date: &NaiveDate) -> Vec<InlineKeyboardButton> {
     let prev_month = date.checked_sub_months(Months::new(1)).unwrap();
     let next_month = date.checked_add_months(Months::new(1)).unwrap();
 
-     let display_month = to_text_month(date);
+    let display_month = to_text_month(date);
 
     vec![
         InlineKeyboardButton::callback("<<", format!("move_to_{}", prev_month.format("%d.%m.%Y"))),
-        InlineKeyboardButton::callback(format!("{display_month}"), format!("call:navmonth:{}", date.format("%d.%m.%Y"))),
+        InlineKeyboardButton::callback(
+            format!("{display_month}"),
+            format!("call:navmonth:{}", date.format("%d.%m.%Y")),
+        ),
         InlineKeyboardButton::callback(">>", format!("move_to_{}", next_month.format("%d.%m.%Y"))),
     ]
 }
 
 /// return tuple (month, year)
 pub fn year_button(date: &NaiveDate) -> Vec<InlineKeyboardButton> {
-  
     dbg!(date.year().to_string());
- 
-    vec![InlineKeyboardButton::callback(date.year().to_string(), format!("call:navyear:01.01.{}", date.year().to_string()))]
 
-  
+    vec![InlineKeyboardButton::callback(
+        date.year().to_string(),
+        format!("call:navyear:01.01.{}", date.year().to_string()),
+    )]
 }
 
 fn to_text_month(date: &NaiveDate) -> String {

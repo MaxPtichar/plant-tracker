@@ -1,6 +1,5 @@
 use chrono::{DateTime, NaiveDate, TimeZone, Utc};
 
-
 use crate::analytycs_v2::daily_water_loss;
 use crate::bot::dialogue::WateringConfigDialog;
 use crate::bot::keyboards::plant_or_menu;
@@ -171,22 +170,16 @@ pub async fn receive_date(
         None => parse_custom_date(data)?,
     };
 
-        return finalize_measurement(
-            bot,
-            dialogue,
-            chat_id,
-            prev_msg_id,
-            pool,
-            (plant_id, weight, type_, date),
-        )
-        .await;
-    }
-
-  
-        
-   
- 
-
+    return finalize_measurement(
+        bot,
+        dialogue,
+        chat_id,
+        prev_msg_id,
+        pool,
+        (plant_id, weight, type_, date),
+    )
+    .await;
+}
 
 pub async fn finalize_measurement(
     bot: Bot,

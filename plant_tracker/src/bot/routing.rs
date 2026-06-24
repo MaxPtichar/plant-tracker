@@ -27,7 +27,6 @@ pub fn message_branches()
             }]
             .endpoint(receive_weight),
         )
-       
         .branch(plant_creation_message_branches())
         .branch(water_config_message_branches())
 }
@@ -78,7 +77,6 @@ pub fn callback_branches()
         .branch(measurement_branches())
         .branch(delete_branches_measurement())
         .branch(pot_creation_callback_branches())
-        
 }
 
 fn pot_creation_callback_branches()
@@ -178,6 +176,5 @@ pub fn is_menu_callback(q: CallbackQuery) -> bool {
             || d == "ignore"
             || d.starts_with("move_to")
             || d.starts_with("call:")
-           
     })
 }

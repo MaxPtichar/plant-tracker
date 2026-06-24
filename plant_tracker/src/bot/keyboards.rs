@@ -1,6 +1,5 @@
 use crate::{models::Plant, utlity::get_minsk_date};
 
-
 use teloxide::types::{InlineKeyboardButton, InlineKeyboardMarkup};
 
 /// Returns a keyboard with a single "Back to main menu" button.
@@ -14,7 +13,6 @@ pub fn back_to() -> InlineKeyboardMarkup {
 
 /// Returns the main menu inline keyboard.
 pub fn main_menu_buttons() -> InlineKeyboardMarkup {
-
     InlineKeyboardMarkup::new(vec![
         vec![
             InlineKeyboardButton::callback("🌿 Панель управления", "myplants"),
@@ -94,7 +92,7 @@ pub fn measurement_type_keyboard() -> InlineKeyboardMarkup {
 ///
 /// Options: today, yesterday, or custom date input.
 pub fn date_keyboard() -> InlineKeyboardMarkup {
-      let current_date = get_minsk_date().format("%d.%m.%Y");
+    let current_date = get_minsk_date().format("%d.%m.%Y");
     InlineKeyboardMarkup::new(vec![
         vec![InlineKeyboardButton::callback("Сегодня", "today")],
         vec![InlineKeyboardButton::callback("Вчера", "yesterday")],
