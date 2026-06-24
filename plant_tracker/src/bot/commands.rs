@@ -1,6 +1,9 @@
+use chrono::NaiveDate;
 use teloxide::utils::command::BotCommands;
 
 use crate::analytycs_v2::format_last_feed;
+
+use crate::bot::calendar::{build_calendar, month_grid, year_grid};
 use crate::bot::dialogue::WateringConfigDialog;
 use crate::bot::handlers::plants::{get_all_plants_status, get_list_of_all_plants};
 use crate::bot::keyboards::{back_to, back_to_my_plants, first_page, my_plants_menu};
@@ -8,6 +11,7 @@ use crate::bot::keyboards::{main_menu_buttons, plant_keyboard};
 
 use crate::db_operations;
 use crate::prelude::*;
+
 
 /// Bot commands available via `/` in Telegram.
 ///
@@ -92,6 +96,10 @@ pub async fn handle_menu_buttons(
     let message = q.message.as_ref().unwrap();
     let msg_id = message.id();
     let plants = db_operations::get_user_plants(&pool, chat_id_i64).await?;
+
+    
+
+    dbg!(&data.as_str());
 
     match data.as_str() {
         "start" => {
@@ -264,6 +272,77 @@ pub async fn handle_menu_buttons(
                 .await?;
         }
 
+        "ignore" => {
+            bot.answer_callback_query(q.id).await?;
+            return Ok(());
+        }
+
+        dt if dt.starts_with("move_to_") => {
+            let new_date = dt.trim_start_matches("move_to_");
+            let dt_naive = NaiveDate::parse_from_str(new_date, "%d.%m.%Y")?;
+
+            bot.edit_message_text(chat_id, msg_id, "Календарь")
+                .reply_markup(build_calendar(dt_naive))
+                .await?;
+        }
+
+         action_call if action_call.starts_with("call:") => {
+
+
+            let clear_call = action_call.trim_start_matches("call:");
+
+            let (command, date) = clear_call.split_once(":").unwrap();
+
+            let parse_date =  NaiveDate::parse_from_str(date,"%d.%m.%Y")?;
+
+            match command {
+
+                "navmonth" => {
+
+
+                    bot.edit_message_text(chat_id, msg_id, "Выберите месяц")
+                .reply_markup(month_grid(&parse_date))
+                .await?;
+
+
+                }
+
+                "navyear" => { 
+                    bot.edit_message_text(chat_id, msg_id, "Выберите год")
+                .reply_markup(year_grid(&parse_date))
+                .await?;
+
+                }
+
+    
+
+                "calendar" => { 
+            
+           
+
+
+            bot.edit_message_text(chat_id, msg_id, "Календарь")
+                .reply_markup(build_calendar(parse_date))
+                .await?;
+        }
+
+
+                
+
+                _ => unreachable!()
+                
+            }
+
+            
+         }  
+
+            
+        
+
+
+
+
+        
         _ => {}
     }
 

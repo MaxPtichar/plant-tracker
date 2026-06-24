@@ -1,5 +1,6 @@
 use chrono::{DateTime, NaiveDate, TimeZone, Utc};
 
+
 use crate::analytycs_v2::daily_water_loss;
 use crate::bot::dialogue::WateringConfigDialog;
 use crate::bot::keyboards::plant_or_menu;
@@ -165,7 +166,11 @@ pub async fn receive_date(
 
     bot.answer_callback_query(q.id).await?;
 
-    if let Some(date) = parse_date(data) {
+    let date = match parse_date(data) {
+        Some(date) => date,
+        None => parse_custom_date(data)?,
+    };
+
         return finalize_measurement(
             bot,
             dialogue,
@@ -177,20 +182,11 @@ pub async fn receive_date(
         .await;
     }
 
-    dialogue
-        .update(MeasurementDialogue::WaitingForCustomDate {
-            prev_msg_id,
-            plant_id,
-            weight,
-            type_,
-        })
-        .await?;
+  
+        
+   
+ 
 
-    bot.edit_message_text(chat_id, prev_msg_id, "Введите дату в формате ДД.ММ.ГГГГ:")
-        .await?;
-
-    Ok(())
-}
 
 pub async fn finalize_measurement(
     bot: Bot,
@@ -257,39 +253,8 @@ pub async fn finalize_measurement(
     Ok(())
 }
 
-pub async fn receive_custom_date(
-    bot: Bot,
-    msg: Message,
-    dialogue: MyDialogue,
-    pool: PgPool,
-    (prev_msg_id, plant_id, weight, type_): (MessageId, i64, f32, MeasurementType),
-) -> HandlerResult {
-    bot.delete_message(msg.chat.id, msg.id).await.ok();
-
-    if let Some(text) = msg.text()
-        && let Ok(date) = NaiveDate::parse_from_str(text, "%d.%m.%Y")
-            .or_else(|_| NaiveDate::parse_from_str(text, "%d.%m.%y"))
-    {
-        let date = date.and_hms_opt(0, 0, 0).unwrap();
-        let datetime_utc: DateTime<Utc> = Utc.from_local_datetime(&date).unwrap();
-
-        return finalize_measurement(
-            bot,
-            dialogue,
-            msg.chat.id,
-            prev_msg_id,
-            pool,
-            (plant_id, weight, type_, datetime_utc),
-        )
-        .await;
-    }
-
-    bot.edit_message_text(
-        msg.chat.id,
-        prev_msg_id,
-        "Неверный формат. Нужно ДД.ММ.ГГГГ или ДД.ММ.ГГ (например 06.04.2026 или 06.04.26):",
-    )
-    .await?;
-
-    Ok(())
+fn parse_custom_date(data: &str) -> Result<DateTime<Utc>, chrono::ParseError> {
+    let naive = NaiveDate::parse_from_str(data, "%d.%m.%Y")?;
+    let naive_dt = naive.and_hms_opt(0, 0, 0).unwrap();
+    Ok(Utc.from_local_datetime(&naive_dt).unwrap())
 }

@@ -6,7 +6,7 @@ use crate::bot::dialogue::WateringConfigDialog;
 use crate::bot::handlers::{
     delete_last_measure::{receive_answer_measurement, receive_plant_for_delete_measurement},
     delete_plants::{receive_answer, receive_plant_for_delete},
-    measurement::{receive_custom_date, receive_plant},
+    measurement::receive_plant,
     measurements_record::receive_plant_for_record,
     plant_creation::get_plant_name,
     receive_date, receive_type, receive_weight,
@@ -27,15 +27,7 @@ pub fn message_branches()
             }]
             .endpoint(receive_weight),
         )
-        .branch(
-            dptree::case![MeasurementDialogue::WaitingForCustomDate {
-                prev_msg_id,
-                plant_id,
-                weight,
-                type_
-            }]
-            .endpoint(receive_custom_date),
-        )
+       
         .branch(plant_creation_message_branches())
         .branch(water_config_message_branches())
 }
@@ -86,6 +78,7 @@ pub fn callback_branches()
         .branch(measurement_branches())
         .branch(delete_branches_measurement())
         .branch(pot_creation_callback_branches())
+        
 }
 
 fn pot_creation_callback_branches()
@@ -182,5 +175,9 @@ pub fn is_menu_callback(q: CallbackQuery) -> bool {
             || d == "deletelastmeasurement"
             || d == "help"
             || d == "chooseplant"
+            || d == "ignore"
+            || d.starts_with("move_to")
+            || d.starts_with("call:")
+           
     })
 }
