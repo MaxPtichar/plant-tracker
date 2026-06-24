@@ -13,8 +13,8 @@ async fn main() {
         .with_max_level(tracing::Level::WARN)
         .init();
 
-    tracing::info!("Bot has started...");
-    bot::plant_bot().await;
+    // tracing::info!("Bot has started...");
+    // bot::plant_bot().await;
 
     tokio::spawn(async {
         tracing::info!("Bot has started...");
