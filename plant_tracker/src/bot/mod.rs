@@ -1,3 +1,4 @@
+pub mod calendar;
 pub mod callbacks;
 pub mod commands;
 pub mod dialogue;
@@ -90,7 +91,7 @@ pub async fn plant_bot() {
 async fn notification_loop(bot_clone: Bot, pool_clone: PgPool) {
     loop {
         let now = Local::now();
-        if now.hour() == 15 && now.minute() == 43 {
+        if now.hour() == 14 && now.minute() == 43 {
             chat_notification(&bot_clone, &pool_clone).await;
             tokio::time::sleep(Duration::from_secs(60)).await;
         }
