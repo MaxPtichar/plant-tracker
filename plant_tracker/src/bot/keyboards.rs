@@ -117,6 +117,12 @@ pub fn back_to_or_menu() -> InlineKeyboardMarkup {
     ]])
 }
 
+pub fn back_to_choose_plant() -> InlineKeyboardMarkup {
+    InlineKeyboardMarkup::new(vec![vec![
+        InlineKeyboardButton::callback("↩︎  Назад", "chooseplant"),
+    ]])
+}
+
 /// Returns a confirmation keyboard for plant deletion.
 ///
 /// Options: confirm deletion or cancel (returns to "My Plants").
@@ -140,6 +146,8 @@ pub fn plant_or_menu() -> InlineKeyboardMarkup {
             "🌿 Другое растение",
             "chooseplant",
         )],
+        vec![InlineKeyboardButton::callback("💧 Когда поливать?", "status")],
+        
         vec![InlineKeyboardButton::callback(
             "🏠 В главное меню",
             "cancel_action",
