@@ -20,7 +20,7 @@ use crate::bot::commands::handle_command;
 use crate::bot::notification::chat_notification;
 use crate::bot::routing::{callback_branches, message_branches};
 
-use chrono::{Local, Timelike};
+use chrono::{Local, NaiveDate, Timelike, Utc};
 
 use crate::prelude::*;
 /// Entry point of the bot. Initialises the database pool, starts the
@@ -88,12 +88,21 @@ pub async fn plant_bot() {
 // / Sends morning watering reminders to all users at 09:00.
 // / Checks every 30 seconds, sleeps 60 seconds after sending to avoid double-send.
 async fn notification_loop(bot_clone: Bot, pool_clone: PgPool) {
+
+
+    let notification_time = NaiveDate::parse_from_str("17:26", "%H:%M").unwrap();
+
+  
     loop {
-        let now = Local::now();
-        if now.hour() == 14 && now.minute() == 43 {
+        tracing::warn!("notification loop started");
+
+        let now = Utc::now().date_naive();
+        if now >= notification_time {
             chat_notification(&bot_clone, &pool_clone).await;
             tokio::time::sleep(Duration::from_secs(60)).await;
         }
         tokio::time::sleep(Duration::from_secs(30)).await;
+
+        tracing::warn!("notification loop ended");
     }
 }
