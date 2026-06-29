@@ -1,22 +1,20 @@
-use  tg_calendar_widget::locale::translations;
-use  tg_calendar_widget::models::{CalendarAction, CalendarConfig};
 use chrono::Utc;
 use teloxide::types::InlineKeyboardMarkup;
 use teloxide::utils::command::BotCommands;
+use tg_calendar_widget::locale::translations;
+use tg_calendar_widget::models::{CalendarAction, CalendarConfig};
 
 use crate::analytycs_v2::format_last_feed;
-
 
 use crate::bot::dialogue::WateringConfigDialog;
 use crate::bot::handlers::plants::{get_all_plants_status, get_list_of_all_plants};
 use crate::bot::keyboards::{back_to, back_to_my_plants, first_page, my_plants_menu};
 use crate::bot::keyboards::{main_menu_buttons, plant_keyboard};
 
-use crate:: db_operations;
+use crate::db_operations;
 use crate::prelude::*;
 
-use  tg_calendar_widget::builder;
-
+use tg_calendar_widget::builder;
 
 /// Bot commands available via `/` in Telegram.
 ///
@@ -275,66 +273,62 @@ pub async fn handle_menu_buttons(
                 .await?;
         }
 
-        
-       
-
         _ => {}
     }
 
     Ok(())
 }
 
-
 pub async fn calendar_handle(bot: Bot, q: CallbackQuery) -> HandlerResult {
-
     bot.answer_callback_query(q.id).await?;
 
     let data = q.data.as_deref().unwrap_or("");
     let current_date = Utc::now().date_naive();
-   
+
     let chat_id = q.message.as_ref().unwrap().chat().id;
-  
 
     let message = q.message.as_ref().unwrap();
     let msg_id = message.id();
 
-       
-    let config = CalendarConfig {min_date: None, max_date: Some(current_date) };
+    let config = CalendarConfig {
+        min_date: None,
+        max_date: Some(current_date),
+    };
     let translations = translations::EN;
     match data {
         "calendar" => {
+            let calendar: InlineKeyboardMarkup = builder::build_calendar(
+                current_date,
+                &translations,
+                |d| d.format("%d.%m.%Y"),
+                &config,
+            )
+            .into();
 
-             
-
-                
-
-             let calendar: InlineKeyboardMarkup = 
-             builder::build_calendar(current_date, &translations, |d| d.format("%d.%m.%Y"), &config).into();
-            
-             bot.edit_message_text(chat_id, msg_id, "Календарь")
+            bot.edit_message_text(chat_id, msg_id, "Календарь")
                 .reply_markup(calendar)
                 .await?;
-
         }
 
-        _ => match CalendarAction::handle_callback(data, &translations, |d| d.format("%d.%m.%Y"), &config) {
-            Some(CalendarAction::Redraw(markup)) => {  bot.edit_message_text(chat_id, msg_id, "Календарь")
-                .reply_markup(markup.into())
-                .await?;},
+        _ => match CalendarAction::handle_callback(
+            data,
+            &translations,
+            |d| d.format("%d.%m.%Y"),
+            &config,
+        ) {
+            Some(CalendarAction::Redraw(markup)) => {
+                bot.edit_message_text(chat_id, msg_id, "Календарь")
+                    .reply_markup(markup.into())
+                    .await?;
+            }
 
             Some(CalendarAction::Custom(_)) => return Ok(()),
-            None => return Ok(())
-            
-        }   
-
-        
+            None => return Ok(()),
+        },
     }
 
-
     return Ok(());
-
 }
-
 
 fn help_text() -> String {
     "🌿 Как устроен полив по весу?

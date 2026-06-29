@@ -78,10 +78,7 @@ pub fn callback_branches()
         .branch(measurement_branches())
         .branch(delete_branches_measurement())
         .branch(pot_creation_callback_branches())
-      
 }
-
-
 
 fn pot_creation_callback_branches()
 -> Handler<'static, HandlerResult, teloxide::dispatching::DpHandlerDescription> {
@@ -177,14 +174,11 @@ pub fn is_menu_callback(q: CallbackQuery) -> bool {
             || d == "deletelastmeasurement"
             || d == "help"
             || d == "chooseplant"
-            
-          
     })
 }
 
 pub fn calendar_filter(q: CallbackQuery) -> bool {
-    q.data.as_deref().is_some_and(|d| {
-        tg_calendar_widget::handler::is_calendar_callback(d)
-        || d == "calendar"
-    })
+    q.data
+        .as_deref()
+        .is_some_and(|d| tg_calendar_widget::handler::is_calendar_callback(d) || d == "calendar")
 }
