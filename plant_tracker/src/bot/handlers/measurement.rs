@@ -2,7 +2,7 @@ use chrono::{DateTime, NaiveDate, TimeZone, Utc};
 
 use crate::analytycs_v2::daily_water_loss;
 use crate::bot::dialogue::WateringConfigDialog;
-use crate::bot::keyboards::plant_or_menu;
+use crate::bot::keyboards::{back_to_choose_plant, plant_or_menu};
 
 use crate::models::{MeasurementType, PlantMeasurementsHistory};
 use crate::prelude::*;
@@ -65,8 +65,9 @@ pub async fn receive_plant(
     bot.edit_message_text(
         chat_id,
         msg_id,
-        format!("☘️ {plant_name}\n\nВведите текущий вес растения в граммах:"),
-    )
+        format!("☘️ {plant_name}\n\nВведите текущий вес растения в граммах:")
+        ,
+    ).reply_markup(back_to_choose_plant())
     .await?;
 
     dialogue
