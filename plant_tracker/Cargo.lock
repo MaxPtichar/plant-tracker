@@ -1519,6 +1519,7 @@ dependencies = [
  "serde_json",
  "sqlx",
  "teloxide",
+ "tg-calendar-widget",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -2564,6 +2565,16 @@ dependencies = [
  "once_cell",
  "rustix",
  "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "tg-calendar-widget"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f4c6fbe2c0650852059ad2dc5ced94150a5f6902265b96f307df9320cfbbce52"
+dependencies = [
+ "chrono",
+ "teloxide",
 ]
 
 [[package]]

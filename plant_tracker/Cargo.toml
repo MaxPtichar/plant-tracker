@@ -20,3 +20,5 @@ tracing-subscriber = "0.3"
 anyhow = "1.0.102"
 
 
+
+tg-calendar-widget = { version = "0.1.1", features = ["teloxide"] }

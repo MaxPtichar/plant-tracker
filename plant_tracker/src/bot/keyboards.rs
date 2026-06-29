@@ -1,4 +1,4 @@
-use crate::{models::Plant, utlity::get_minsk_date};
+use crate::models::Plant;
 
 use teloxide::types::{InlineKeyboardButton, InlineKeyboardMarkup};
 
@@ -92,13 +92,12 @@ pub fn measurement_type_keyboard() -> InlineKeyboardMarkup {
 ///
 /// Options: today, yesterday, or custom date input.
 pub fn date_keyboard() -> InlineKeyboardMarkup {
-    let current_date = get_minsk_date().format("%d.%m.%Y");
     InlineKeyboardMarkup::new(vec![
         vec![InlineKeyboardButton::callback("Сегодня", "today")],
         vec![InlineKeyboardButton::callback("Вчера", "yesterday")],
         vec![InlineKeyboardButton::callback(
             "Ввести свою дату",
-            format!("call:calendar:{}", current_date.to_string()),
+            "calendar".to_string(),
         )],
     ])
 }

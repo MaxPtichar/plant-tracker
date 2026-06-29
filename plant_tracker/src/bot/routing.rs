@@ -1,7 +1,7 @@
 pub use super::dialogue::{MeasurementDialogue, PlantCreationDialogue};
 
 use crate::bot::callbacks::cancel_callback;
-use crate::bot::commands::handle_menu_buttons;
+use crate::bot::commands::{calendar_handle, handle_menu_buttons};
 use crate::bot::dialogue::WateringConfigDialog;
 use crate::bot::handlers::{
     delete_last_measure::{receive_answer_measurement, receive_plant_for_delete_measurement},
@@ -72,12 +72,16 @@ pub fn callback_branches()
 -> Handler<'static, HandlerResult, teloxide::dispatching::DpHandlerDescription> {
     Update::filter_callback_query()
         .branch(cancel_callback())
+        .branch(dptree::filter(calendar_filter).endpoint(calendar_handle))
         .branch(dptree::filter(is_menu_callback).endpoint(handle_menu_buttons))
         .branch(delete_branches())
         .branch(measurement_branches())
         .branch(delete_branches_measurement())
         .branch(pot_creation_callback_branches())
+      
 }
+
+
 
 fn pot_creation_callback_branches()
 -> Handler<'static, HandlerResult, teloxide::dispatching::DpHandlerDescription> {
@@ -173,8 +177,14 @@ pub fn is_menu_callback(q: CallbackQuery) -> bool {
             || d == "deletelastmeasurement"
             || d == "help"
             || d == "chooseplant"
-            || d == "ignore"
-            || d.starts_with("move_to")
-            || d.starts_with("call:")
+            
+          
+    })
+}
+
+pub fn calendar_filter(q: CallbackQuery) -> bool {
+    q.data.as_deref().is_some_and(|d| {
+        tg_calendar_widget::handler::is_calendar_callback(d)
+        || d == "calendar"
     })
 }

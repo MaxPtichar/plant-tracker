@@ -1,16 +1,22 @@
-use chrono::NaiveDate;
+use  tg_calendar_widget::locale::translations;
+use  tg_calendar_widget::models::{CalendarAction, CalendarConfig};
+use chrono::Utc;
+use teloxide::types::InlineKeyboardMarkup;
 use teloxide::utils::command::BotCommands;
 
 use crate::analytycs_v2::format_last_feed;
 
-use crate::bot::calendar::{build_calendar, month_grid, year_grid};
+
 use crate::bot::dialogue::WateringConfigDialog;
 use crate::bot::handlers::plants::{get_all_plants_status, get_list_of_all_plants};
 use crate::bot::keyboards::{back_to, back_to_my_plants, first_page, my_plants_menu};
 use crate::bot::keyboards::{main_menu_buttons, plant_keyboard};
 
-use crate::db_operations;
+use crate:: db_operations;
 use crate::prelude::*;
+
+use  tg_calendar_widget::builder;
+
 
 /// Bot commands available via `/` in Telegram.
 ///
@@ -269,55 +275,66 @@ pub async fn handle_menu_buttons(
                 .await?;
         }
 
-        "ignore" => {
-            bot.answer_callback_query(q.id).await?;
-            return Ok(());
-        }
-
-        dt if dt.starts_with("move_to_") => {
-            let new_date = dt.trim_start_matches("move_to_");
-            let dt_naive = NaiveDate::parse_from_str(new_date, "%d.%m.%Y")?;
-
-            bot.edit_message_text(chat_id, msg_id, "Календарь")
-                .reply_markup(build_calendar(dt_naive))
-                .await?;
-        }
-
-        action_call if action_call.starts_with("call:") => {
-            let clear_call = action_call.trim_start_matches("call:");
-
-            let (command, date) = clear_call.split_once(":").unwrap();
-
-            let parse_date = NaiveDate::parse_from_str(date, "%d.%m.%Y")?;
-
-            match command {
-                "navmonth" => {
-                    bot.edit_message_text(chat_id, msg_id, "Выберите месяц")
-                        .reply_markup(month_grid(&parse_date))
-                        .await?;
-                }
-
-                "navyear" => {
-                    bot.edit_message_text(chat_id, msg_id, "Выберите год")
-                        .reply_markup(year_grid(&parse_date))
-                        .await?;
-                }
-
-                "calendar" => {
-                    bot.edit_message_text(chat_id, msg_id, "Календарь")
-                        .reply_markup(build_calendar(parse_date))
-                        .await?;
-                }
-
-                _ => unreachable!(),
-            }
-        }
+        
+       
 
         _ => {}
     }
 
     Ok(())
 }
+
+
+pub async fn calendar_handle(bot: Bot, q: CallbackQuery) -> HandlerResult {
+
+    bot.answer_callback_query(q.id).await?;
+
+    let data = q.data.as_deref().unwrap_or("");
+    let current_date = Utc::now().date_naive();
+   
+    let chat_id = q.message.as_ref().unwrap().chat().id;
+  
+
+    let message = q.message.as_ref().unwrap();
+    let msg_id = message.id();
+
+       
+    let config = CalendarConfig {min_date: None, max_date: Some(current_date) };
+    let translations = translations::EN;
+    match data {
+        "calendar" => {
+
+             
+
+                
+
+             let calendar: InlineKeyboardMarkup = 
+             builder::build_calendar(current_date, &translations, |d| d.format("%d.%m.%Y"), &config).into();
+            
+             bot.edit_message_text(chat_id, msg_id, "Календарь")
+                .reply_markup(calendar)
+                .await?;
+
+        }
+
+        _ => match CalendarAction::handle_callback(data, &translations, |d| d.format("%d.%m.%Y"), &config) {
+            Some(CalendarAction::Redraw(markup)) => {  bot.edit_message_text(chat_id, msg_id, "Календарь")
+                .reply_markup(markup.into())
+                .await?;},
+
+            Some(CalendarAction::Custom(_)) => return Ok(()),
+            None => return Ok(())
+            
+        }   
+
+        
+    }
+
+
+    return Ok(());
+
+}
+
 
 fn help_text() -> String {
     "🌿 Как устроен полив по весу?
