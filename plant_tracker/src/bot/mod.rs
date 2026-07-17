@@ -60,7 +60,7 @@ pub async fn plant_bot() {
     let bot_clone = bot.clone();
     let pool_clone = pool.clone();
 
-    // tokio::spawn(notification_loop(bot_clone.clone(), pool_clone.clone()));
+    tokio::spawn(notification_loop(bot_clone.clone(), pool_clone.clone()));
 
     bot.set_my_commands(commands::Command::bot_commands())
         .await
@@ -93,11 +93,11 @@ async fn notification_loop(bot_clone: Bot, pool_clone: PgPool) {
         tracing::warn!("notification loop started");
 
         let now = Local::now();
-        if now.hour() >= 14 && now.minute() >= 00 {
+        if now.hour() >= 09 && now.minute() >= 00 {
             chat_notification(&bot_clone, &pool_clone).await;
             tokio::time::sleep(Duration::from_secs(60)).await;
         }
-        tokio::time::sleep(Duration::from_secs(30)).await;
+        tokio::time::sleep(Duration::from_secs(86400)).await;
 
         tracing::warn!("notification loop ended");
     }
