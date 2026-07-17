@@ -60,7 +60,7 @@ pub async fn plant_bot() {
     let bot_clone = bot.clone();
     let pool_clone = pool.clone();
 
-    tokio::spawn(notification_loop(bot_clone.clone(), pool_clone.clone()));
+    // tokio::spawn(notification_loop(bot_clone.clone(), pool_clone.clone()));
 
     bot.set_my_commands(commands::Command::bot_commands())
         .await
